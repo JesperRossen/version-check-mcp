@@ -113,8 +113,9 @@ func TestExpires(t *testing.T) {
 }
 
 func TestTieredTTL(t *testing.T) {
-	// fullTTL=2s → shortTTL≈min(fullTTL/30, 30s)≈66ms.
-	c := cache.NewCache(64, 2*time.Second)
+	// Use the test-only constructor so shortTTL can be set below the
+	// production 1s floor. fullTTL=2s, shortTTL=50ms keeps the test fast.
+	c := cache.NewCacheWithShortTTL(64, 2*time.Second, 50*time.Millisecond)
 	defer c.Close()
 
 	t.Run("success cached at fullTTL", func(t *testing.T) {
