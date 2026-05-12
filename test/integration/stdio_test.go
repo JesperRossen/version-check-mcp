@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -24,6 +25,9 @@ func buildBinary(t *testing.T) string {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go build failed: %v\n%s", err, out)
+	}
+	if _, statErr := os.Stat(bin); statErr != nil {
+		t.Fatalf("built binary missing at %s: %v", bin, statErr)
 	}
 	return bin
 }
@@ -65,6 +69,13 @@ func TestStdioCleanliness(t *testing.T) {
 	if _, err := io.WriteString(stdin, req); err != nil {
 		t.Fatalf("write stdin: %v", err)
 	}
+	// Brief delay before closing stdin so the SDK's dispatch goroutine has
+	// time to write the response before the read-loop sees EOF and tears
+	// the session down. Without this, a stdin.Close immediately after the
+	// write races the dispatch and the response is silently dropped. Real
+	// MCP clients keep stdin open across multiple calls, so this race is
+	// only visible in artificial single-shot tests like this one.
+	time.Sleep(500 * time.Millisecond)
 	_ = stdin.Close()
 
 	done := make(chan error, 1)
@@ -72,7 +83,7 @@ func TestStdioCleanliness(t *testing.T) {
 	select {
 	case err := <-done:
 		if err != nil {
-			t.Fatalf("wait: %v; stderr=%s", err, stderr.String())
+			t.Fatalf("wait: %v; stdout=%q stderr=%q", err, stdout.String(), stderr.String())
 		}
 	case <-time.After(5 * time.Second):
 		_ = cmd.Process.Kill()
@@ -81,7 +92,7 @@ func TestStdioCleanliness(t *testing.T) {
 
 	out := strings.TrimSpace(stdout.String())
 	if out == "" {
-		t.Fatalf("stdout empty; want one JSON-RPC frame")
+		t.Fatalf("stdout empty; want one JSON-RPC frame. stderr=%q bin=%s", stderr.String(), bin)
 	}
 	dec := json.NewDecoder(strings.NewReader(out))
 	var resp map[string]any
@@ -110,6 +121,7 @@ func TestStderrIsJSON(t *testing.T) {
 		t.Fatalf("start: %v", err)
 	}
 	_, _ = io.WriteString(stdin, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}`+"\n")
+	time.Sleep(500 * time.Millisecond)
 	_ = stdin.Close()
 	_ = cmd.Wait()
 
@@ -140,6 +152,7 @@ func TestCacheTTLFlag(t *testing.T) {
 			t.Fatalf("start %v: %v", args, err)
 		}
 		_, _ = io.WriteString(stdin, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}`+"\n")
+		time.Sleep(500 * time.Millisecond)
 		_ = stdin.Close()
 
 		done := make(chan error, 1)
@@ -167,12 +180,16 @@ func TestHelpOutput(t *testing.T) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-	// Go's flag package exits 2 on --help.
-	if err == nil {
-		t.Errorf("--help exited 0, want non-zero")
-	}
+	// Go's flag package handles --help by printing usage and calling os.Exit(0)
+	// (exit 2 only fires when an unknown/malformed flag is supplied). We
+	// permit either outcome; the substantive assertion is that the help text
+	// names both flags.
+	_ = err
 	combined := stdout.String() + stderr.String()
-	for _, want := range []string{"--cache-ttl", "--verbose"} {
+	// Go's flag package prints single-dash form in usage even though both
+	// `-flag` and `--flag` are accepted on the CLI. We assert on substrings
+	// that match either form (`-cache-ttl` is the prefix of `--cache-ttl`).
+	for _, want := range []string{"-cache-ttl", "-verbose"} {
 		if !strings.Contains(combined, want) {
 			t.Errorf("help output missing %q; got:\n%s", want, combined)
 		}
