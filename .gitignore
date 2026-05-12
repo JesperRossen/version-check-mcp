@@ -31,3 +31,7 @@ go.work.sum
 # .idea/
 # .vscode/
 .planning/
+
+# Build artifacts
+tmp/
+/version-check-mcp
