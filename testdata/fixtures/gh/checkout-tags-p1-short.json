@@ -1,0 +1,51 @@
+[
+  {
+    "name": "v6",
+    "commit": {
+      "sha": "short001",
+      "url": ""
+    }
+  },
+  {
+    "name": "v6.0.2",
+    "commit": {
+      "sha": "short002",
+      "url": ""
+    }
+  },
+  {
+    "name": "v6.0.1",
+    "commit": {
+      "sha": "short003",
+      "url": ""
+    }
+  },
+  {
+    "name": "v6.0.0",
+    "commit": {
+      "sha": "short004",
+      "url": ""
+    }
+  },
+  {
+    "name": "v5.1.0",
+    "commit": {
+      "sha": "short005",
+      "url": ""
+    }
+  },
+  {
+    "name": "v5.0.0",
+    "commit": {
+      "sha": "short006",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.0.0",
+    "commit": {
+      "sha": "short007",
+      "url": ""
+    }
+  }
+]

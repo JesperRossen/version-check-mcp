@@ -1,0 +1,7 @@
+{
+  "status": 403,
+  "headers": {
+    "X-RateLimit-Remaining": "0",
+    "X-RateLimit-Reset": "1999999999"
+  }
+}

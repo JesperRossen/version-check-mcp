@@ -1,0 +1,702 @@
+[
+  {
+    "name": "v6",
+    "commit": {
+      "sha": "abc0000",
+      "url": ""
+    }
+  },
+  {
+    "name": "v6.0.2",
+    "commit": {
+      "sha": "abc0001",
+      "url": ""
+    }
+  },
+  {
+    "name": "v6.0.1",
+    "commit": {
+      "sha": "abc0002",
+      "url": ""
+    }
+  },
+  {
+    "name": "v6.0.0",
+    "commit": {
+      "sha": "abc0003",
+      "url": ""
+    }
+  },
+  {
+    "name": "v6-beta",
+    "commit": {
+      "sha": "abc0004",
+      "url": ""
+    }
+  },
+  {
+    "name": "v5.1.0",
+    "commit": {
+      "sha": "abc0005",
+      "url": ""
+    }
+  },
+  {
+    "name": "v5.0.0",
+    "commit": {
+      "sha": "abc0006",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.3.5",
+    "commit": {
+      "sha": "abc0007",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.3.4",
+    "commit": {
+      "sha": "abc0008",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.3.3",
+    "commit": {
+      "sha": "abc0009",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.3.2",
+    "commit": {
+      "sha": "abc0010",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.3.1",
+    "commit": {
+      "sha": "abc0011",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.3.0",
+    "commit": {
+      "sha": "abc0012",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.2.5",
+    "commit": {
+      "sha": "abc0013",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.2.4",
+    "commit": {
+      "sha": "abc0014",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.2.3",
+    "commit": {
+      "sha": "abc0015",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.2.2",
+    "commit": {
+      "sha": "abc0016",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.2.1",
+    "commit": {
+      "sha": "abc0017",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.2.0",
+    "commit": {
+      "sha": "abc0018",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.1.5",
+    "commit": {
+      "sha": "abc0019",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.1.4",
+    "commit": {
+      "sha": "abc0020",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.1.3",
+    "commit": {
+      "sha": "abc0021",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.1.2",
+    "commit": {
+      "sha": "abc0022",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.1.1",
+    "commit": {
+      "sha": "abc0023",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.1.0",
+    "commit": {
+      "sha": "abc0024",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.0.5",
+    "commit": {
+      "sha": "abc0025",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.0.4",
+    "commit": {
+      "sha": "abc0026",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.0.3",
+    "commit": {
+      "sha": "abc0027",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.0.2",
+    "commit": {
+      "sha": "abc0028",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.0.1",
+    "commit": {
+      "sha": "abc0029",
+      "url": ""
+    }
+  },
+  {
+    "name": "v4.0.0",
+    "commit": {
+      "sha": "abc0030",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.3.5",
+    "commit": {
+      "sha": "abc0031",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.3.4",
+    "commit": {
+      "sha": "abc0032",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.3.3",
+    "commit": {
+      "sha": "abc0033",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.3.2",
+    "commit": {
+      "sha": "abc0034",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.3.1",
+    "commit": {
+      "sha": "abc0035",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.3.0",
+    "commit": {
+      "sha": "abc0036",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.2.5",
+    "commit": {
+      "sha": "abc0037",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.2.4",
+    "commit": {
+      "sha": "abc0038",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.2.3",
+    "commit": {
+      "sha": "abc0039",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.2.2",
+    "commit": {
+      "sha": "abc0040",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.2.1",
+    "commit": {
+      "sha": "abc0041",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.2.0",
+    "commit": {
+      "sha": "abc0042",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.1.5",
+    "commit": {
+      "sha": "abc0043",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.1.4",
+    "commit": {
+      "sha": "abc0044",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.1.3",
+    "commit": {
+      "sha": "abc0045",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.1.2",
+    "commit": {
+      "sha": "abc0046",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.1.1",
+    "commit": {
+      "sha": "abc0047",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.1.0",
+    "commit": {
+      "sha": "abc0048",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.0.5",
+    "commit": {
+      "sha": "abc0049",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.0.4",
+    "commit": {
+      "sha": "abc0050",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.0.3",
+    "commit": {
+      "sha": "abc0051",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.0.2",
+    "commit": {
+      "sha": "abc0052",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.0.1",
+    "commit": {
+      "sha": "abc0053",
+      "url": ""
+    }
+  },
+  {
+    "name": "v3.0.0",
+    "commit": {
+      "sha": "abc0054",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.3.5",
+    "commit": {
+      "sha": "abc0055",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.3.4",
+    "commit": {
+      "sha": "abc0056",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.3.3",
+    "commit": {
+      "sha": "abc0057",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.3.2",
+    "commit": {
+      "sha": "abc0058",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.3.1",
+    "commit": {
+      "sha": "abc0059",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.3.0",
+    "commit": {
+      "sha": "abc0060",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.2.5",
+    "commit": {
+      "sha": "abc0061",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.2.4",
+    "commit": {
+      "sha": "abc0062",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.2.3",
+    "commit": {
+      "sha": "abc0063",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.2.2",
+    "commit": {
+      "sha": "abc0064",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.2.1",
+    "commit": {
+      "sha": "abc0065",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.2.0",
+    "commit": {
+      "sha": "abc0066",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.1.5",
+    "commit": {
+      "sha": "abc0067",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.1.4",
+    "commit": {
+      "sha": "abc0068",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.1.3",
+    "commit": {
+      "sha": "abc0069",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.1.2",
+    "commit": {
+      "sha": "abc0070",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.1.1",
+    "commit": {
+      "sha": "abc0071",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.1.0",
+    "commit": {
+      "sha": "abc0072",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.0.5",
+    "commit": {
+      "sha": "abc0073",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.0.4",
+    "commit": {
+      "sha": "abc0074",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.0.3",
+    "commit": {
+      "sha": "abc0075",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.0.2",
+    "commit": {
+      "sha": "abc0076",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.0.1",
+    "commit": {
+      "sha": "abc0077",
+      "url": ""
+    }
+  },
+  {
+    "name": "v2.0.0",
+    "commit": {
+      "sha": "abc0078",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.3.5",
+    "commit": {
+      "sha": "abc0079",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.3.4",
+    "commit": {
+      "sha": "abc0080",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.3.3",
+    "commit": {
+      "sha": "abc0081",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.3.2",
+    "commit": {
+      "sha": "abc0082",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.3.1",
+    "commit": {
+      "sha": "abc0083",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.3.0",
+    "commit": {
+      "sha": "abc0084",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.2.5",
+    "commit": {
+      "sha": "abc0085",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.2.4",
+    "commit": {
+      "sha": "abc0086",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.2.3",
+    "commit": {
+      "sha": "abc0087",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.2.2",
+    "commit": {
+      "sha": "abc0088",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.2.1",
+    "commit": {
+      "sha": "abc0089",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.2.0",
+    "commit": {
+      "sha": "abc0090",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.1.5",
+    "commit": {
+      "sha": "abc0091",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.1.4",
+    "commit": {
+      "sha": "abc0092",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.1.3",
+    "commit": {
+      "sha": "abc0093",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.1.2",
+    "commit": {
+      "sha": "abc0094",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.1.1",
+    "commit": {
+      "sha": "abc0095",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.1.0",
+    "commit": {
+      "sha": "abc0096",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.0.5",
+    "commit": {
+      "sha": "abc0097",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.0.4",
+    "commit": {
+      "sha": "abc0098",
+      "url": ""
+    }
+  },
+  {
+    "name": "v1.0.3",
+    "commit": {
+      "sha": "abc0099",
+      "url": ""
+    }
+  }
+]
