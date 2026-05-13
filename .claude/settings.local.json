@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go *)",
+      "Bash(rtk read *)",
+      "Bash(git check-ignore *)",
+      "Bash(rtk go *)",
+      "Bash(git merge *)"
+    ]
+  },
+  "skillOverrides": {
+    "api-design-principles": "name-only",
+    "architecture-decision-records": "name-only",
+    "architecture-patterns": "name-only",
+    "auth-implementation-patterns": "name-only",
+    "bash-defensive-patterns": "name-only",
+    "bats-testing-patterns": "name-only",
+    "code-review-excellence": "name-only",
+    "debugging-strategies": "name-only",
+    "dependency-upgrade": "name-only",
+    "deployment-pipeline-design": "name-only",
+    "distributed-tracing": "name-only",
+    "e2e-testing-patterns": "name-only",
+    "error-handling-patterns": "name-only",
+    "git-advanced-workflows": "name-only",
+    "github-actions-templates": "name-only",
+    "gitlab-ci-patterns": "name-only",
+    "gitops-workflow": "name-only",
+    "grafana-dashboards": "name-only",
+    "helm-chart-scaffolding": "name-only",
+    "javascript-testing-patterns": "name-only",
+    "k8s-manifest-generator": "name-only",
+    "k8s-security-policies": "name-only",
+    "skill-creator": "name-only"
+  }
+}
