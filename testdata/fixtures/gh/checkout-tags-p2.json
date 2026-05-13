@@ -1,0 +1,37 @@
+[
+  {
+    "name": "v0.9.0",
+    "commit": {
+      "sha": "abcdef01",
+      "url": ""
+    }
+  },
+  {
+    "name": "v0.8.0",
+    "commit": {
+      "sha": "abcdef02",
+      "url": ""
+    }
+  },
+  {
+    "name": "v0.7.0",
+    "commit": {
+      "sha": "abcdef03",
+      "url": ""
+    }
+  },
+  {
+    "name": "v0.6.0",
+    "commit": {
+      "sha": "abcdef04",
+      "url": ""
+    }
+  },
+  {
+    "name": "v0.5.0",
+    "commit": {
+      "sha": "abcdef05",
+      "url": ""
+    }
+  }
+]
