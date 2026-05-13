@@ -8,6 +8,7 @@ import (
 	"flag"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -18,9 +19,34 @@ import (
 	appmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/fake"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/npm"
+	"github.com/JesperRossen/version-check-mcp/internal/version"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+// uaTransport wraps an http.RoundTripper and injects a User-Agent header on
+// any outbound request that does not already carry one. The shared client's
+// Transport is set to a uaTransport so every adapter's request is identified
+// to upstream registries (npm and others request a non-blank UA and may
+// rate-limit blank UAs more aggressively).
+type uaTransport struct {
+	ua   string
+	next http.RoundTripper
+}
+
+func (t uaTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.Header.Get("User-Agent") == "" {
+		r2 := r.Clone(r.Context())
+		r2.Header.Set("User-Agent", t.ua)
+		r = r2
+	}
+	return t.next.RoundTrip(r)
+}
+
+func userAgent() string {
+	return "version-check-mcp/" + version.Version + " (+https://github.com/JesperRossen/version-check-mcp)"
+}
 
 func main() {
 	cacheTTL := flag.Duration("cache-ttl", 15*time.Minute, "TTL for cached registry responses")
@@ -37,10 +63,12 @@ func main() {
 	c := cache.NewCache(1024, *cacheTTL)
 	defer c.Close()
 
-	// Phase 1: all five managers backed by the FakeRegistry. Real adapters
-	// land in Phase 2 (NPM) and Phase 3 (PyPI/Go/GH/Maven).
+	sharedClient := newSharedClient()
+
+	// Phase 2: NPM uses the real adapter. PyPI/Go/GH/Maven remain on the
+	// FakeRegistry until Phase 3.
 	registries := map[appmcp.Manager]registry.Registry{
-		appmcp.ManagerNPM:   fake.New("npm"),
+		appmcp.ManagerNPM:   npm.New(sharedClient, c),
 		appmcp.ManagerPyPI:  fake.New("pypi"),
 		appmcp.ManagerGomod: fake.New("gomod"),
 		appmcp.ManagerGH:    fake.New("gh"),
