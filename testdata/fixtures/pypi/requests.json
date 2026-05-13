@@ -1,0 +1,27 @@
+{
+  "info": {
+    "name": "requests",
+    "version": "2.32.5",
+    "summary": "Python HTTP for Humans."
+  },
+  "releases": {
+    "2.32.5": [
+      {"yanked": false, "yanked_reason": ""}
+    ],
+    "2.32.3": [
+      {"yanked": false, "yanked_reason": ""}
+    ],
+    "2.32.1": [
+      {"yanked": true, "yanked_reason": "Critical security issue"}
+    ],
+    "2.31.0rc1": [
+      {"yanked": false, "yanked_reason": ""}
+    ],
+    "2.28.0": [
+      {"yanked": false, "yanked_reason": ""}
+    ],
+    "3.0.0a1": [
+      {"yanked": false, "yanked_reason": ""}
+    ]
+  }
+}
