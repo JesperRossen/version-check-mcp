@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: test (go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.25.x", "1.26.x"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Unit tests
+        run: go test ./... -count=1 -race -timeout 5m
+
+      - name: Integration tests (fixture-replay)
+        run: go test -tags testfixtures ./test/integration/... -count=1 -timeout 5m
+
+      # Cold-start benchmark — advisory only (TEST-04). Runs on the Go 1.25
+      # matrix entry only to avoid duplicate numbers. The step never fails
+      # the build (continue-on-error: true) regardless of the measured ms.
+      - name: Cold-start benchmark (advisory)
+        if: matrix.go == '1.25.x'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          go build -tags testfixtures -o ./version-check-mcp ./cmd/version-check-mcp
+
+          # The binary speaks newline-delimited JSON-RPC on stdio.
+          REQ='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"cold-start-bench","version":"0.0"}}}'
+
+          OUT=$(mktemp)
+          export NPM_FIXTURE_DIR="$PWD/testdata/fixtures/npm"
+
+          # Hold stdin open with a trailing sleep so the binary doesn't exit
+          # on EOF before answering. The subshell streams the request line +
+          # newline, then idles for up to 5 s while we wait for the response.
+          START_NS=$(date +%s%N)
+          ( printf '%s\n' "$REQ"; sleep 5 ) | ./version-check-mcp > "$OUT" 2>/dev/null &
+          PID=$!
+
+          # Spin-wait up to 5 s for the first stdout byte. ms resolution.
+          ELAPSED_MS=-1
+          for _ in $(seq 1 5000); do
+            if [ -s "$OUT" ]; then
+              END_NS=$(date +%s%N)
+              ELAPSED_MS=$(( (END_NS - START_NS) / 1000000 ))
+              break
+            fi
+            sleep 0.001
+          done
+          kill "$PID" 2>/dev/null || true
+          wait "$PID" 2>/dev/null || true
+
+          {
+            echo "### Cold-Start Benchmark"
+            echo ""
+            if [ "$ELAPSED_MS" -ge 0 ]; then
+              echo "Wall-clock from spawn to first stdout byte: **${ELAPSED_MS} ms**"
+            else
+              echo "Failed to capture first stdout byte within 5 s (advisory; never fails the build)"
+            fi
+            echo ""
+            echo "_Target: <20 ms cold start (advisory; never fails the build per TEST-04)_"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "cold-start-ms=$ELAPSED_MS"
