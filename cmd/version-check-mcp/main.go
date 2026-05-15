@@ -18,8 +18,11 @@ import (
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
 	appmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
-	"github.com/JesperRossen/version-check-mcp/internal/registry/fake"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/gh"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/gomod"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/maven"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/npm"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/pypi"
 	"github.com/JesperRossen/version-check-mcp/internal/version"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -65,14 +68,13 @@ func main() {
 
 	sharedClient := newSharedClient()
 
-	// Phase 2: NPM uses the real adapter. PyPI/Go/GH/Maven remain on the
-	// FakeRegistry until Phase 3.
+	// Phase 3: all five registries use real adapters.
 	registries := map[appmcp.Manager]registry.Registry{
 		appmcp.ManagerNPM:   npm.New(sharedClient, c),
-		appmcp.ManagerPyPI:  fake.New("pypi"),
-		appmcp.ManagerGomod: fake.New("gomod"),
-		appmcp.ManagerGH:    fake.New("gh"),
-		appmcp.ManagerMaven: fake.New("maven"),
+		appmcp.ManagerPyPI:  pypi.New(sharedClient, c),
+		appmcp.ManagerGomod: gomod.New(sharedClient, c),
+		appmcp.ManagerGH:    gh.New(sharedClient, c),
+		appmcp.ManagerMaven: maven.New(sharedClient, c),
 	}
 
 	server := appmcp.NewServer(registries, c, logger)
