@@ -5,8 +5,10 @@ import (
 	"errors"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
 	"github.com/JesperRossen/version-check-mcp/internal/errs"
@@ -24,8 +26,8 @@ func fixtureDir(t *testing.T) string {
 	t.Helper()
 	_, thisFile, _, _ := runtime.Caller(0)
 	// thisFile is .../internal/registry/maven/maven_test.go
-	// We need to go up 4 levels to the module root, then into testdata/fixtures/maven.
-	moduleRoot := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..")
+	// We need to go up 3 levels to the module root, then into testdata/fixtures/maven.
+	moduleRoot := filepath.Join(filepath.Dir(thisFile), "..", "..", "..")
 	return filepath.Join(moduleRoot, "testdata", "fixtures", "maven")
 }
 
@@ -48,7 +50,7 @@ func newAdapter(t *testing.T, callCount *atomic.Int64) *maven.Adapter {
 		}
 	}
 	client := testfixtures.Client(t, dir, urlToFile, callCount)
-	c := cache.NewCache(64, 0)
+	c := cache.NewCache(64, 5*time.Minute)
 	t.Cleanup(c.Close)
 	return maven.New(client, c)
 }
@@ -183,7 +185,7 @@ func TestLatest_SnapshotFiltered(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(res.Version) > 0 && res.Version[len(res.Version)-len("-SNAPSHOT"):] == "-SNAPSHOT" {
+	if strings.HasSuffix(res.Version, "-SNAPSHOT") {
 		t.Errorf("stable result must not end with -SNAPSHOT, got %q", res.Version)
 	}
 	if res.Source != "computed-highest" {
@@ -192,16 +194,18 @@ func TestLatest_SnapshotFiltered(t *testing.T) {
 }
 
 // TestLatest_IncPreAdmitsSnapshot verifies that incPre=true bypasses <release>
-// and may return a SNAPSHOT as the computed highest.
+// and includes SNAPSHOT versions in the computed-highest calculation.
+// Uses snapshot-lib fixture where 2.0.0-SNAPSHOT is the highest version
+// (semver: 2.0.0-SNAPSHOT > 1.5.0 because 2.0.0 > 1.5.0 in precedence).
 func TestLatest_IncPreAdmitsSnapshot(t *testing.T) {
 	a := newAdapter(t, nil)
-	res, err := a.Latest(context.Background(), "org.springframework:spring-core", true, nil, nil)
+	res, err := a.Latest(context.Background(), "com.example:snapshot-lib", true, nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// With incPre=true the SNAPSHOT is in play. It should be the highest.
-	if res.Version != "7.0.7-SNAPSHOT" {
-		t.Errorf("expected highest with incPre=true to be %q, got %q", "7.0.7-SNAPSHOT", res.Version)
+	// With incPre=true, 2.0.0-SNAPSHOT should win over 1.5.0.
+	if res.Version != "2.0.0-SNAPSHOT" {
+		t.Errorf("expected highest with incPre=true to be %q, got %q", "2.0.0-SNAPSHOT", res.Version)
 	}
 	if res.Source != "computed-highest" {
 		t.Errorf("expected Source=%q, got %q", "computed-highest", res.Source)
