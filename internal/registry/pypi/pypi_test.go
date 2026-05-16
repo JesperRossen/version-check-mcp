@@ -19,9 +19,10 @@ import (
 var _ registry.Registry = (*pypi.Adapter)(nil)
 
 const (
-	pypiRequestsURL    = "https://pypi.org/pypi/requests/json"
-	pypiNonexistentURL = "https://pypi.org/pypi/nonexistent/json"
-	pypiFixturesPath   = "../../../testdata/fixtures/pypi"
+	pypiRequestsURL      = "https://pypi.org/pypi/requests/json"
+	pypiNonexistentURL   = "https://pypi.org/pypi/nonexistent/json"
+	pypiYankedHighestURL = "https://pypi.org/pypi/yanked-highest/json"
+	pypiFixturesPath     = "../../../testdata/fixtures/pypi"
 )
 
 func intPtr(i int) *int { return &i }
@@ -37,6 +38,8 @@ func newAdapter(t *testing.T) (*pypi.Adapter, *atomic.Int64) {
 			return "requests.json"
 		case pypiNonexistentURL:
 			return "nonexistent.json"
+		case pypiYankedHighestURL:
+			return "yanked-highest.json"
 		default:
 			t.Fatalf("unmapped fixture URL: %q", u)
 			return ""
@@ -169,6 +172,24 @@ func TestLatest_IncPre(t *testing.T) {
 	}
 	if res.Version == "" {
 		t.Fatalf("Version is empty")
+	}
+}
+
+// TestLatest_YankedVersionSkipped proves CR-03: when the highest version in the
+// releases map is yanked, Latest must not return it — the next-highest non-yanked
+// version must be returned instead.
+func TestLatest_YankedVersionSkipped(t *testing.T) {
+	a, _ := newAdapter(t)
+	// yanked-highest fixture: 2.0.0 is yanked (highest numeric), 1.0.0 is stable.
+	res, err := a.Latest(context.Background(), "yanked-highest", true, nil, nil)
+	if err != nil {
+		t.Fatalf("Latest err = %v", err)
+	}
+	if res.Version == "2.0.0" {
+		t.Fatalf("Latest returned yanked version 2.0.0; yanked versions must be excluded")
+	}
+	if res.Version != "1.0.0" {
+		t.Fatalf("Version = %q, want 1.0.0 (highest non-yanked)", res.Version)
 	}
 }
 

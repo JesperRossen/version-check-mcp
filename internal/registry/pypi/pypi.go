@@ -172,7 +172,10 @@ func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, mi
 	}
 
 	keys := make([]string, 0, len(p.Releases))
-	for k := range p.Releases {
+	for k, files := range p.Releases {
+		if isYanked(files) {
+			continue
+		}
 		keys = append(keys, k)
 	}
 

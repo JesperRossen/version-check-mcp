@@ -1,0 +1,15 @@
+{
+  "info": {
+    "name": "yanked-highest",
+    "version": "1.0.0",
+    "summary": "Fixture: highest version is yanked."
+  },
+  "releases": {
+    "2.0.0": [
+      {"yanked": true, "yanked_reason": "Broken API"}
+    ],
+    "1.0.0": [
+      {"yanked": false, "yanked_reason": ""}
+    ]
+  }
+}
