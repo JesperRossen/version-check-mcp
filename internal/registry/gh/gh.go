@@ -109,6 +109,14 @@ func (a *Adapter) tagsFor(ctx context.Context, repo string, incPre bool) ([]stri
 				return nil, err
 			}
 			out = append(out, page2...)
+			if len(page2) == 100 {
+				// More than 200 tags exist; results are incomplete.
+				// Return an error rather than silently producing wrong answers.
+				return nil, errs.UpstreamDown(nil,
+					"pkg", repo, "registry", "gh",
+					"reason", "too_many_tags_truncated",
+				)
+			}
 		}
 		return out, nil
 	})
