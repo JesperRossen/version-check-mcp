@@ -78,17 +78,15 @@ type releaseLatest struct {
 func mapErr(resp *http.Response, pkg string) error {
 	if resp.StatusCode == http.StatusForbidden &&
 		resp.Header.Get("X-RateLimit-Remaining") == "0" {
-		var resetUnix int64
+		reset := time.Now().Add(30 * time.Second) // safe fallback when header absent
 		if v := resp.Header.Get("X-RateLimit-Reset"); v != "" {
 			if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-				resetUnix = n
+				reset = time.Unix(n, 0)
 			}
 		}
-		reset := time.Unix(resetUnix, 0)
 		return errs.RateLimited(reset,
 			"pkg", pkg,
 			"registry", "gh",
-			"reset_at", resetUnix,
 		)
 	}
 	return httperr.MapHTTPStatus(resp, pkg, "gh")

@@ -120,7 +120,7 @@ func TestValidate_MissVersion(t *testing.T) {
 }
 
 // TestValidate_RateLimited proves 403 + X-RateLimit-Remaining:0 maps to
-// KindRateLimited with reset_at detail matching the fixture's Unix timestamp.
+// KindRateLimited with reset_at as a time.Time matching the fixture's Unix timestamp.
 func TestValidate_RateLimited(t *testing.T) {
 	a := newAdapter(t, nil)
 	_, err := a.Validate(context.Background(), repoRateLimited, "v1.0.0", false)
@@ -134,18 +134,18 @@ func TestValidate_RateLimited(t *testing.T) {
 	if e.Kind != errs.KindRateLimited {
 		t.Fatalf("Kind = %q, want %q", e.Kind, errs.KindRateLimited)
 	}
-	// Fixture X-RateLimit-Reset is "1999999999"
+	// Fixture X-RateLimit-Reset is "1999999999"; errs.RateLimited stores reset_at as time.Time.
 	resetAt, ok := e.Details["reset_at"]
 	if !ok {
 		t.Fatalf("Details missing reset_at key; details = %v", e.Details)
 	}
-	// reset_at should be int64(1999999999)
-	resetInt, ok := resetAt.(int64)
+	resetTime, ok := resetAt.(time.Time)
 	if !ok {
-		t.Fatalf("reset_at type = %T, want int64; value = %v", resetAt, resetAt)
+		t.Fatalf("reset_at type = %T, want time.Time; value = %v", resetAt, resetAt)
 	}
-	if resetInt != 1999999999 {
-		t.Fatalf("reset_at = %d, want 1999999999", resetInt)
+	want := time.Unix(1999999999, 0)
+	if !resetTime.Equal(want) {
+		t.Fatalf("reset_at = %v, want %v", resetTime, want)
 	}
 }
 
