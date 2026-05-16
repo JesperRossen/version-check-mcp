@@ -43,8 +43,9 @@ func PEP440Normalize(v string) string {
 	// Longer alternatives come first in the regex so "alpha" wins over "a", etc.
 	v = reSepPreLabel.ReplaceAllStringFunc(v, func(m string) string {
 		parts := reSepPreLabel.FindStringSubmatch(m)
-		if len(parts) < 3 {
-			return m
+		// The outer match guarantees len(parts)==3; assert to catch future regex edits.
+		if len(parts) != 3 {
+			panic("pep440: regex subgroup count changed; fix reSepPreLabel")
 		}
 		label := parts[1]
 		digits := parts[2]
