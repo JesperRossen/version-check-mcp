@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
 	"github.com/JesperRossen/version-check-mcp/internal/errs"
@@ -80,6 +81,9 @@ func (a *Adapter) Name() string { return "pypi" }
 // *pypiProject, never pypiProject — mixing pointer/value would split the cache
 // by type identity.
 func (a *Adapter) projectFor(ctx context.Context, pkg string, incPre bool) (*pypiProject, error) {
+	if strings.ContainsAny(pkg, "/ \t\n") {
+		return nil, errs.InvalidInput("pypi package name must not contain path separators or whitespace", "pkg", pkg)
+	}
 	key := cache.Key{Manager: "pypi", Pkg: pkg, Op: "project", IncPre: incPre}
 	return cache.Get[*pypiProject](ctx, a.cache, key, func(ctx context.Context) (*pypiProject, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, projectURL(pkg), nil)
