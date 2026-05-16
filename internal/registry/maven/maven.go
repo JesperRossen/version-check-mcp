@@ -67,9 +67,12 @@ func (a *Adapter) Name() string { return "maven" }
 
 // parsePkg splits "group:artifact" into its components. Returns KindInvalidInput
 // if the format is not exactly "non-empty:non-empty" (D-MAVEN-05, T-03-maven-01).
+//
+// SplitN limit=2 means ["group", "remainder"]; any extra colons stay in
+// remainder, which is then caught by the strings.Contains(parts[1], ":") guard.
 func parsePkg(pkg string) (group, artifact string, err error) {
-	parts := strings.SplitN(pkg, ":", 3)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+	parts := strings.SplitN(pkg, ":", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" || strings.Contains(parts[1], ":") {
 		return "", "", errs.InvalidInput(
 			"maven package must be in group:artifact format",
 			"pkg", pkg,
