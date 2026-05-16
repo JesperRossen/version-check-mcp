@@ -5,9 +5,16 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execSync, execFileSync, spawnSync } = require('child_process');
+const { execGit, platformWriteSync, platformReadSync, platformEnsureDir } = require('./shell-command-projection.cjs');
 const { MODEL_PROFILES, AGENT_TO_PHASE_TYPE, VALID_PHASE_TYPES, AGENT_DEFAULT_TIERS, VALID_AGENT_TIERS, nextTier } = require('./model-profiles.cjs');
 const { MODEL_ALIAS_MAP, RUNTIME_PROFILE_MAP, KNOWN_RUNTIMES, RUNTIMES_WITH_REASONING_EFFORT } = require('./model-catalog.cjs');
+const {
+  resolveWorktreeContext,
+  parseWorktreePorcelain: parseWorktreePorcelainPolicy,
+  planWorktreePrune,
+  executeWorktreePrunePlan,
+  inspectWorktreeHealth,
+} = require('./worktree-safety.cjs');
 // Compatibility shim: new imports should use planning-workspace.cjs directly.
 const {
   planningDir,
@@ -100,7 +107,9 @@ function findProjectRoot(startDir) {
     if (fs.existsSync(parentPlanning) && fs.statSync(parentPlanning).isDirectory()) {
       const configPath = path.join(parentPlanning, 'config.json');
       try {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        const raw = platformReadSync(configPath);
+        if (raw === null) throw new Error('missing');
+        const config = JSON.parse(raw);
         const subRepos = config.sub_repos || config.planning?.sub_repos || [];
 
         // Check explicit sub_repos list
@@ -148,7 +157,7 @@ function findProjectRoot(startDir) {
 const GSD_TEMP_DIR = path.join(require('os').tmpdir(), 'gsd');
 
 function ensureGsdTempDir() {
-  fs.mkdirSync(GSD_TEMP_DIR, { recursive: true });
+  platformEnsureDir(GSD_TEMP_DIR);
 }
 
 function reapStaleTempFiles(prefix = 'gsd-', { maxAgeMs = 5 * 60 * 1000, dirsOnly = false } = {}) {
@@ -189,7 +198,7 @@ function output(result, raw, rawValue) {
       reapStaleTempFiles();
       ensureGsdTempDir();
       const tmpPath = path.join(GSD_TEMP_DIR, `gsd-${Date.now()}.json`);
-      fs.writeFileSync(tmpPath, json, 'utf-8');
+      platformWriteSync(tmpPath, json);
       data = '@file:' + tmpPath;
     } else {
       data = json;
@@ -269,14 +278,6 @@ function error(message, reason = ERROR_REASON.UNKNOWN) {
 
 // ─── File & Config utilities ──────────────────────────────────────────────────
 
-function safeReadFile(filePath) {
-  try {
-    return fs.readFileSync(filePath, 'utf-8');
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Canonical config defaults. Single source of truth — imported by config.cjs and verify.cjs.
  */
@@ -304,7 +305,7 @@ const CONFIG_DEFAULTS = {
   phase_naming: 'sequential', // 'sequential' (default, auto-increment) or 'custom' (arbitrary string IDs)
   project_code: null, // optional short prefix for phase dirs (e.g., 'CK' → 'CK-01-foundation')
   subagent_timeout: 300000, // 5 min default; increase for large codebases or slower models (ms)
-  security_enforcement: true, // workflow.security_enforcement — threat-model-anchored security verification via /gsd-secure-phase
+  security_enforcement: true, // workflow.security_enforcement — threat-model-anchored security verification via /gsd:secure-phase
   security_asvs_level: 1, // workflow.security_asvs_level — OWASP ASVS verification level (1=opportunistic, 2=standard, 3=comprehensive)
   security_block_on: 'high', // workflow.security_block_on — minimum severity that blocks phase advancement ('high' | 'medium' | 'low')
   post_planning_gaps: true, // workflow.post_planning_gaps — unified post-planning gap report (#2493): scan REQUIREMENTS.md + CONTEXT.md decisions vs all PLAN.md files
@@ -332,27 +333,40 @@ function _deepMergeConfig(base, overlay) {
   return result;
 }
 
-function loadConfig(cwd) {
+function loadConfig(cwd, options = {}) {
+  const activeWorkstream = Object.prototype.hasOwnProperty.call(options, 'workstream')
+    ? options.workstream
+    : (process.env.GSD_WORKSTREAM || null);
   // When GSD_WORKSTREAM is set, load root config first so workstream config
   // can inherit from it. This prevents users from duplicating model_overrides,
   // workflow.*, etc. across every workstream config (#2714).
-  const ws = process.env.GSD_WORKSTREAM || null;
+  const ws = activeWorkstream;
   let rootParsed = null;
   if (ws) {
     const rootConfigPath = path.join(planningRoot(cwd), 'config.json');
     try {
-      const raw = fs.readFileSync(rootConfigPath, 'utf-8');
+      const raw = platformReadSync(rootConfigPath);
+      if (raw === null) throw new Error('missing');
       rootParsed = JSON.parse(raw);
+      if (Object.prototype.hasOwnProperty.call(rootParsed, 'branching_strategy')) {
+        if (!rootParsed.git) rootParsed.git = {};
+        if (rootParsed.git.branching_strategy === undefined) {
+          rootParsed.git.branching_strategy = rootParsed.branching_strategy;
+        }
+        delete rootParsed.branching_strategy;
+        try { platformWriteSync(rootConfigPath, JSON.stringify(rootParsed, null, 2)); } catch {}
+      }
     } catch {
       // Root config missing or unparseable — workstream config stands alone
     }
   }
 
-  const configPath = path.join(planningDir(cwd), 'config.json');
+  const configPath = path.join(planningDir(cwd, ws), 'config.json');
   const defaults = CONFIG_DEFAULTS;
 
   try {
-    const raw = fs.readFileSync(configPath, 'utf-8');
+    const raw = platformReadSync(configPath);
+    if (raw === null) throw new Error('missing');
     // `fileData` is the parsed content of the config.json file on disk — used
     // for migrations and writes so we never persist merged values back to disk.
     const fileData = JSON.parse(raw);
@@ -362,7 +376,7 @@ function loadConfig(cwd) {
       const depthToGranularity = { quick: 'coarse', standard: 'standard', comprehensive: 'fine' };
       fileData.granularity = depthToGranularity[fileData.depth] || fileData.depth;
       delete fileData.depth;
-      try { fs.writeFileSync(configPath, JSON.stringify(fileData, null, 2), 'utf-8'); } catch { /* intentionally empty */ }
+      try { platformWriteSync(configPath, JSON.stringify(fileData, null, 2)); } catch { /* intentionally empty */ }
     }
 
     // Auto-detect and sync sub_repos: scan for child directories with .git
@@ -393,6 +407,21 @@ function loadConfig(cwd) {
       configDirty = true;
     }
 
+    // #3523 — Migrate legacy top-level branching_strategy → git.branching_strategy.
+    // Canonical location is git.branching_strategy (per config-schema.cjs); writing
+    // at the top level trips the unknown-key warning even though loadConfig:485 actively
+    // reads it via the nested fallback. This migration mirrors the multiRepo → sub_repos
+    // precedent: graft then delete so the warning never fires again on this project.
+    // The nested value wins if already set (matches SDK mergeDefaults precedence, PR #3116).
+    if (Object.prototype.hasOwnProperty.call(fileData, 'branching_strategy')) {
+      if (!fileData.git) fileData.git = {};
+      if (fileData.git.branching_strategy === undefined) {
+        fileData.git.branching_strategy = fileData.branching_strategy;
+      }
+      delete fileData.branching_strategy;
+      configDirty = true;
+    }
+
     // Keep planning.sub_repos in sync with actual filesystem
     const currentSubRepos = fileData.planning?.sub_repos || [];
     if (Array.isArray(currentSubRepos) && currentSubRepos.length > 0) {
@@ -410,7 +439,7 @@ function loadConfig(cwd) {
     // Persist sub_repos changes (migration or sync) — write only the on-disk
     // file contents, never the merged result, to avoid polluting workstream configs.
     if (configDirty) {
-      try { fs.writeFileSync(configPath, JSON.stringify(fileData, null, 2), 'utf-8'); } catch {}
+      try { platformWriteSync(configPath, JSON.stringify(fileData, null, 2)); } catch {}
     }
 
     // Now apply root→workstream inheritance. `parsed` is the effective config
@@ -433,13 +462,23 @@ function loadConfig(cwd) {
       // Internal keys loadConfig reads but config-set doesn't expose
       'model_overrides', 'context_window', 'resolve_model_ids', 'claude_md_path',
       // Deprecated keys (still accepted for migration, not in config-set)
-      'depth', 'multiRepo',
+      // 'branching_strategy' is kept here as a safety net: it is migrated to
+      // git.branching_strategy above (#3523), but on the first read of a root
+      // config that feeds into a workstream merge, `parsed` may still surface it.
+      'depth', 'multiRepo', 'branching_strategy',
     ]);
     const unknownKeys = Object.keys(parsed).filter(k => !KNOWN_TOP_LEVEL.has(k));
     if (unknownKeys.length > 0) {
-      process.stderr.write(
-        `gsd-tools: warning: unknown config key(s) in .planning/config.json: ${unknownKeys.join(', ')} — these will be ignored\n`
-      );
+      // Deduplicate: a single `init phase-op N` invocation calls loadConfig twice
+      // (once for the sub-command setup, once for git-config resolution). Guard with
+      // a module-level Set so the same message never fires more than once per process.
+      const warnKey = unknownKeys.join(',');
+      if (!_warnedUnknownConfigKeys.has(warnKey)) {
+        _warnedUnknownConfigKeys.add(warnKey);
+        process.stderr.write(
+          `gsd-tools: warning: unknown config key(s) in .planning/config.json: ${unknownKeys.join(', ')} — these will be ignored\n`
+        );
+      }
     }
 
     // #2517 — Validate runtime/tier values for keys that loadConfig handles but
@@ -490,6 +529,7 @@ function loadConfig(cwd) {
       firecrawl: get('firecrawl') ?? defaults.firecrawl,
       exa_search: get('exa_search') ?? defaults.exa_search,
       tdd_mode: get('tdd_mode', { section: 'workflow', field: 'tdd_mode' }) ?? false,
+      mvp_mode: get('mvp_mode', { section: 'workflow', field: 'mvp_mode' }) ?? false,
       text_mode: get('text_mode', { section: 'workflow', field: 'text_mode' }) ?? defaults.text_mode,
       auto_advance: get('auto_advance', { section: 'workflow', field: 'auto_advance' }) ?? false,
       _auto_chain_active: get('_auto_chain_active', { section: 'workflow', field: '_auto_chain_active' }) ?? false,
@@ -535,25 +575,19 @@ function loadConfig(cwd) {
     // If .planning/ exists, the project is initialized — just missing config.json.
     // When GSD_WORKSTREAM is set and root config was loaded, the workstream config
     // doesn't exist — treat root config as the effective config for this workstream.
-    if (fs.existsSync(planningDir(cwd))) {
+    if (fs.existsSync(planningDir(cwd, ws))) {
       if (rootParsed) {
         // Workstream has no config.json: re-parse using root config as the sole source.
-        // Temporarily clear GSD_WORKSTREAM so planningDir() returns root .planning/,
-        // then reload. This is safe: rootParsed is already the root config object.
-        const savedWs = process.env.GSD_WORKSTREAM;
-        delete process.env.GSD_WORKSTREAM;
-        try {
-          return loadConfig(cwd);
-        } finally {
-          process.env.GSD_WORKSTREAM = savedWs;
-        }
+        // Keep env immutable by explicitly reloading with workstream context cleared.
+        return loadConfig(cwd, { workstream: null });
       }
       return defaults;
     }
     try {
       const home = process.env.GSD_HOME || os.homedir();
       const globalDefaultsPath = path.join(home, '.gsd', 'defaults.json');
-      const raw = fs.readFileSync(globalDefaultsPath, 'utf-8');
+      const raw = platformReadSync(globalDefaultsPath);
+      if (raw === null) throw new Error('missing');
       const globalDefaults = JSON.parse(raw);
       return {
         ...defaults,
@@ -585,151 +619,26 @@ function loadConfig(cwd) {
 
 // ─── Git utilities ────────────────────────────────────────────────────────────
 
+// Module-level deduplication for unknown-key warnings (#3523).
+// A single `init phase-op N` call invokes loadConfig more than once; this Set
+// prevents the same warning from being echoed on each invocation.
+const _warnedUnknownConfigKeys = new Set();
+
 const _gitIgnoredCache = new Map();
 
 function isGitIgnored(cwd, targetPath) {
   const key = cwd + '::' + targetPath;
   if (_gitIgnoredCache.has(key)) return _gitIgnoredCache.get(key);
-  try {
-    // --no-index checks .gitignore rules regardless of whether the file is tracked.
-    // Without it, git check-ignore returns "not ignored" for tracked files even when
-    // .gitignore explicitly lists them — a common source of confusion when .planning/
-    // was committed before being added to .gitignore.
-    // Use execFileSync (array args) to prevent shell interpretation of special characters
-    // in file paths — avoids command injection via crafted path names.
-    execFileSync('git', ['check-ignore', '-q', '--no-index', '--', targetPath], {
-      cwd,
-      stdio: 'pipe',
-    });
-    _gitIgnoredCache.set(key, true);
-    return true;
-  } catch {
-    _gitIgnoredCache.set(key, false);
-    return false;
-  }
-}
-
-// ─── Markdown normalization ─────────────────────────────────────────────────
-
-/**
- * Normalize markdown to fix common markdownlint violations.
- * Applied at write points so GSD-generated .planning/ files are IDE-friendly.
- *
- * Rules enforced:
- *   MD022 — Blank lines around headings
- *   MD031 — Blank lines around fenced code blocks
- *   MD032 — Blank lines around lists
- *   MD012 — No multiple consecutive blank lines (collapsed to 2 max)
- *   MD047 — Files end with a single newline
- */
-function normalizeMd(content) {
-  if (!content || typeof content !== 'string') return content;
-
-  // Normalize line endings to LF for consistent processing
-  let text = content.replace(/\r\n/g, '\n');
-
-  const lines = text.split('\n');
-  const result = [];
-
-  // Pre-compute fence state in a single O(n) pass instead of O(n^2) per-line scanning
-  const fenceRegex = /^```/;
-  const insideFence = new Array(lines.length);
-  let fenceOpen = false;
-  for (let i = 0; i < lines.length; i++) {
-    if (fenceRegex.test(lines[i].trimEnd())) {
-      if (fenceOpen) {
-        // This is a closing fence — mark as NOT inside (it's the boundary)
-        insideFence[i] = false;
-        fenceOpen = false;
-      } else {
-        // This is an opening fence
-        insideFence[i] = false;
-        fenceOpen = true;
-      }
-    } else {
-      insideFence[i] = fenceOpen;
-    }
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const prev = i > 0 ? lines[i - 1] : '';
-    const prevTrimmed = prev.trimEnd();
-    const trimmed = line.trimEnd();
-    const isFenceLine = fenceRegex.test(trimmed);
-
-    // MD022: Blank line before headings (skip first line and frontmatter delimiters)
-    if (/^#{1,6}\s/.test(trimmed) && i > 0 && prevTrimmed !== '' && prevTrimmed !== '---') {
-      result.push('');
-    }
-
-    // MD031: Blank line before fenced code blocks (opening fences only)
-    if (isFenceLine && i > 0 && prevTrimmed !== '' && !insideFence[i] && (i === 0 || !insideFence[i - 1] || isFenceLine)) {
-      // Only add blank before opening fences (not closing ones)
-      if (i === 0 || !insideFence[i - 1]) {
-        result.push('');
-      }
-    }
-
-    // MD032: Blank line before lists (- item, * item, N. item, - [ ] item)
-    if (/^(\s*[-*+]\s|\s*\d+\.\s)/.test(line) && i > 0 &&
-        prevTrimmed !== '' && !/^(\s*[-*+]\s|\s*\d+\.\s)/.test(prev) &&
-        prevTrimmed !== '---') {
-      result.push('');
-    }
-
-    result.push(line);
-
-    // MD022: Blank line after headings
-    if (/^#{1,6}\s/.test(trimmed) && i < lines.length - 1) {
-      const next = lines[i + 1];
-      if (next !== undefined && next.trimEnd() !== '') {
-        result.push('');
-      }
-    }
-
-    // MD031: Blank line after closing fenced code blocks
-    if (/^```\s*$/.test(trimmed) && i > 0 && insideFence[i - 1] && i < lines.length - 1) {
-      const next = lines[i + 1];
-      if (next !== undefined && next.trimEnd() !== '') {
-        result.push('');
-      }
-    }
-
-    // MD032: Blank line after last list item in a block
-    if (/^(\s*[-*+]\s|\s*\d+\.\s)/.test(line) && i < lines.length - 1) {
-      const next = lines[i + 1];
-      if (next !== undefined && next.trimEnd() !== '' &&
-          !/^(\s*[-*+]\s|\s*\d+\.\s)/.test(next) &&
-          !/^\s/.test(next)) {
-        // Only add blank line if next line is not a continuation/indented line
-        result.push('');
-      }
-    }
-  }
-
-  text = result.join('\n');
-
-  // MD012: Collapse 3+ consecutive blank lines to 2
-  text = text.replace(/\n{3,}/g, '\n\n');
-
-  // MD047: Ensure file ends with exactly one newline
-  text = text.replace(/\n*$/, '\n');
-
-  return text;
-}
-
-function execGit(cwd, args) {
-  const result = spawnSync('git', args, {
-    cwd,
-    stdio: 'pipe',
-    encoding: 'utf-8',
-  });
-  return {
-    exitCode: result.status ?? 1,
-    stdout: (result.stdout ?? '').toString().trim(),
-    stderr: (result.stderr ?? '').toString().trim(),
-  };
+  // --no-index checks .gitignore rules regardless of whether the file is tracked.
+  // Without it, git check-ignore returns "not ignored" for tracked files even when
+  // .gitignore explicitly lists them — a common source of confusion when .planning/
+  // was committed before being added to .gitignore.
+  // Array args (via the seam) prevent shell interpretation of special characters in
+  // file paths — avoids command injection via crafted path names.
+  const result = execGit(['check-ignore', '-q', '--no-index', '--', targetPath], { cwd });
+  const ignored = result.exitCode === 0;
+  _gitIgnoredCache.set(key, ignored);
+  return ignored;
 }
 
 // ─── Common path helpers ──────────────────────────────────────────────────────
@@ -740,30 +649,13 @@ function execGit(cwd, args) {
  * Returns the main worktree path, or cwd if not in a worktree.
  */
 function resolveWorktreeRoot(cwd) {
-  // If the current directory already has its own .planning/, respect it.
-  // This handles linked worktrees with independent planning state (e.g., Conductor workspaces).
-  if (fs.existsSync(path.join(cwd, '.planning'))) {
-    return cwd;
-  }
-
-  // Check if we're in a linked worktree
-  const gitDir = execGit(cwd, ['rev-parse', '--git-dir']);
-  const commonDir = execGit(cwd, ['rev-parse', '--git-common-dir']);
-
-  if (gitDir.exitCode !== 0 || commonDir.exitCode !== 0) return cwd;
-
-  // In a linked worktree, .git is a file pointing to .git/worktrees/<name>
-  // and git-common-dir points to the main repo's .git directory
-  const gitDirResolved = path.resolve(cwd, gitDir.stdout);
-  const commonDirResolved = path.resolve(cwd, commonDir.stdout);
-
-  if (gitDirResolved !== commonDirResolved) {
-    // We're in a linked worktree — resolve main worktree root
-    // The common dir is the main repo's .git, so its parent is the main worktree root
-    return path.dirname(commonDirResolved);
-  }
-
-  return cwd;
+  // Omit execGit so worktree-safety uses its own execGitDefault — that wrapper
+  // delegates to the seam and derives the `timedOut` field that pruneResult
+  // branches on below.
+  const context = resolveWorktreeContext(cwd, {
+    existsSync: fs.existsSync,
+  });
+  return context.effectiveRoot;
 }
 
 /**
@@ -775,21 +667,7 @@ function resolveWorktreeRoot(cwd) {
  * @returns {{ path: string, branch: string }[]}
  */
 function parseWorktreePorcelain(porcelain) {
-  const entries = [];
-  let current = null;
-  for (const line of porcelain.split('\n')) {
-    if (line.startsWith('worktree ')) {
-      current = { path: line.slice('worktree '.length).trim(), branch: null };
-    } else if (line.startsWith('branch refs/heads/') && current) {
-      current.branch = line.slice('branch refs/heads/'.length).trim();
-    } else if (line === '' && current) {
-      if (current.branch) entries.push(current);
-      current = null;
-    }
-  }
-  // flush last entry if file doesn't end with blank line
-  if (current && current.branch) entries.push(current);
-  return entries;
+  return parseWorktreePorcelainPolicy(porcelain);
 }
 
 /**
@@ -802,31 +680,24 @@ function parseWorktreePorcelain(porcelain) {
  * @returns {string[]} list of worktree paths that were removed (always empty)
  */
 function pruneOrphanedWorktrees(repoRoot) {
-  const pruned = [];
-  const cwd = process.cwd();
-
   try {
-    // 1. Get all worktrees in porcelain format
-    const listResult = execGit(repoRoot, ['worktree', 'list', '--porcelain']);
-    if (listResult.exitCode !== 0) return pruned;
-
-    const worktrees = parseWorktreePorcelain(listResult.stdout);
-    if (worktrees.length === 0) {
-      execGit(repoRoot, ['worktree', 'prune']);
-      return pruned;
+    const plan = planWorktreePrune(
+      repoRoot,
+      { allowDestructive: false },
+      { parseWorktreePorcelain }
+    );
+    const pruneResult = executeWorktreePrunePlan(plan);
+    if (pruneResult && pruneResult.timedOut) {
+      // AC2: surface structured warning instead of silently swallowing the timeout.
+      // Uses process.stderr.write to match the [gsd-tools] WARNING prefix style.
+      process.stderr.write(
+        '[gsd-tools] WARNING: worktree health check degraded' +
+        ' — git worktree prune timed out after 10s.' +
+        ' Orphaned worktree metadata may remain until the next successful run.\n'
+      );
     }
-
-    // Destructive removal of linked worktrees is intentionally disabled.
-    // Keep metadata cleanup only (git worktree prune), which clears stale refs
-    // for manually-deleted directories without removing active sibling worktrees.
-    void cwd;
-    void worktrees;
   } catch { /* never crash the caller */ }
-
-  // Always run prune to clear stale references (e.g. manually-deleted dirs)
-  execGit(repoRoot, ['worktree', 'prune']);
-
-  return pruned;
+  return [];
 }
 
 // ─── Planning workspace (pathing + active workstream + lock) moved to planning-workspace.cjs ───
@@ -854,6 +725,50 @@ function normalizePhaseName(phase) {
   }
   // Custom phase IDs (e.g. PROJ-42, AUTH-101): return as-is
   return str;
+}
+
+/**
+ * Render a regex source fragment matching a phase number against ROADMAP/STATE
+ * prose regardless of zero-padding on either side. Skills pass the resolved
+ * padded form (`02.7`), but human-authored ROADMAP prose is conventionally
+ * un-padded (`### Phase 2.7:`); a naive `escapeRegex(phaseNum)` fragment never
+ * matches when the two diverge. Strips leading zeros from the integer part
+ * before re-emitting with a `0*` prefix, so the fragment matches both `2.7`
+ * and `02.7` (and `002.7`).
+ *
+ * Falls back to `escapeRegex(phaseNum)` for non-numeric IDs (custom project
+ * codes like `PROJ-42`) so callers can substitute it unconditionally.
+ *
+ * See #3537 — wired into every ROADMAP-prose regex builder.
+ */
+function phaseMarkdownRegexSource(phaseNum) {
+  const stripped = String(phaseNum).replace(/^[A-Z]{1,6}-(?=\d)/i, '');
+  const match = stripped.match(/^0*(\d+)([A-Z])?((?:\.\d+)*)$/i);
+  if (!match) return escapeRegex(phaseNum);
+
+  const integer = match[1].replace(/^0+/, '') || '0';
+  const letter = match[2] ? escapeRegex(match[2]) : '';
+  const decimal = match[3] ? escapeRegex(match[3]) : '';
+  return `0*${escapeRegex(integer)}${letter}${decimal}`;
+}
+
+/**
+ * #3599: when the caller passed a project-code-prefixed ID like `PROJ-42`,
+ * return the exact-escaped form so the caller can search the ROADMAP for
+ * `### Phase PROJ-42:` BEFORE falling back to the padding-tolerant numeric
+ * form. Returns null when the input has no project-code prefix — in that
+ * case the numeric form (`phaseMarkdownRegexSource`) is the only thing the
+ * caller needs.
+ *
+ * Two-pass at the call site preserves the #3537 contract (`CK-01` directory
+ * names mapping to `Phase 1:` prose) while letting `PROJ-42` resolve to its
+ * own prefixed heading without cross-matching a bare `### Phase 42:` that
+ * happens to share the trailing integer.
+ */
+function phaseMarkdownRegexSourceExact(phaseNum) {
+  const raw = String(phaseNum);
+  if (!/^[A-Z]{1,6}-(?=\d)/i.test(raw)) return null;
+  return escapeRegex(raw);
 }
 
 function comparePhaseNum(a, b) {
@@ -1091,8 +1006,8 @@ function extractCurrentMilestone(content, cwd) {
   let version = null;
   try {
     const statePath = path.join(planningDir(cwd), 'STATE.md');
-    if (fs.existsSync(statePath)) {
-      const stateRaw = fs.readFileSync(statePath, 'utf-8');
+    const stateRaw = platformReadSync(statePath);
+    if (stateRaw !== null) {
       const milestoneMatch = stateRaw.match(/^milestone:\s*(.+)/m);
       if (milestoneMatch) {
         version = milestoneMatch[1].trim();
@@ -1198,20 +1113,16 @@ function getRoadmapPhaseInternal(cwd, phaseNum) {
   if (!fs.existsSync(roadmapPath)) return null;
 
   try {
-    const content = extractCurrentMilestone(fs.readFileSync(roadmapPath, 'utf-8'), cwd);
-    // Strip leading zeros from purely numeric phase numbers so "03" matches "Phase 3:"
-    // in canonical ROADMAP headings. Non-numeric IDs (e.g. "PROJ-42") are kept as-is.
-    const normalized = /^\d+$/.test(String(phaseNum))
-      ? String(phaseNum).replace(/^0+(?=\d)/, '')
-      : String(phaseNum);
-    const escapedPhase = escapeRegex(normalized);
-    // Match both numeric and custom (Phase PROJ-42:) headers.
-    // For purely numeric phases allow optional leading zeros so both "Phase 1:" and
-    // "Phase 01:" are matched regardless of whether the ROADMAP uses padded numbers.
-    const isNumeric = /^\d+$/.test(String(phaseNum));
-    const phasePattern = isNumeric
-      ? new RegExp(`#{2,4}\\s*Phase\\s+0*${escapedPhase}:\\s*([^\\n]+)`, 'i')
-      : new RegExp(`#{2,4}\\s*Phase\\s+${escapedPhase}:\\s*([^\\n]+)`, 'i');
+    const roadmapRaw = platformReadSync(roadmapPath);
+    if (roadmapRaw === null) throw new Error('missing');
+    const content = extractCurrentMilestone(roadmapRaw, cwd);
+    // #3537: route through canonical padding-tolerant fragment. The prior
+    // hand-rolled `isNumeric` branch only stripped padding on integer-only
+    // ids and missed decimal padding (`02.7` against `Phase 2.7:` headings).
+    const phasePattern = new RegExp(
+      `#{2,4}\\s*Phase\\s+${phaseMarkdownRegexSource(phaseNum)}:\\s*([^\\n]+)`,
+      'i'
+    );
     const headerMatch = content.match(phasePattern);
     if (!headerMatch) return null;
 
@@ -1701,6 +1612,48 @@ function pathExistsInternal(cwd, targetPath) {
   }
 }
 
+/**
+ * Detect whether `cwd` sits inside a git worktree, and if so, return the
+ * absolute path of the worktree root.
+ *
+ * Bug #3491: the previous shallow `pathExistsInternal(cwd, '.git')` check
+ * only saw a `.git` entry directly in cwd, so subdirectories of an existing
+ * repo reported `has_git: false` and the new-project workflow then ran
+ * `git init` — creating a nested `.git` inside the outer repo's worktree.
+ *
+ * Mirrors `git rev-parse --is-inside-work-tree` semantics. Uses the existing
+ * `execGit` seam so behaviour is consistent with the rest of the toolchain
+ * (non-interactive env, 10s timeout, mockable in tests).
+ *
+ * Returns: { inside: boolean, worktreeRoot: string | null }
+ *   - inside=true  → cwd is somewhere inside a git worktree
+ *   - inside=false → cwd is not inside any git worktree (or git is unavailable)
+ *
+ * Failure modes (git not installed, command times out, non-zero exit) all
+ * collapse to `{ inside: false, worktreeRoot: null }` — the conservative
+ * default that preserves pre-fix behaviour for environments without git.
+ */
+function gitWorktreeInfoInternal(cwd) {
+  try {
+    const insideResult = execGit(['rev-parse', '--is-inside-work-tree'], { cwd, timeout: 5000 });
+    if (insideResult.exitCode !== 0) {
+      return { inside: false, worktreeRoot: null };
+    }
+    const insideStdout = String(insideResult.stdout || '').trim();
+    if (insideStdout !== 'true') {
+      return { inside: false, worktreeRoot: null };
+    }
+    const rootResult = execGit(['rev-parse', '--show-toplevel'], { cwd, timeout: 5000 });
+    if (rootResult.exitCode !== 0) {
+      return { inside: true, worktreeRoot: null };
+    }
+    const root = String(rootResult.stdout || '').trim();
+    return { inside: true, worktreeRoot: root || null };
+  } catch {
+    return { inside: false, worktreeRoot: null };
+  }
+}
+
 function generateSlugInternal(text) {
   if (!text) return null;
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 60);
@@ -1708,7 +1661,8 @@ function generateSlugInternal(text) {
 
 function getMilestoneInfo(cwd) {
   try {
-    const roadmap = fs.readFileSync(path.join(planningDir(cwd), 'ROADMAP.md'), 'utf-8');
+    const roadmap = platformReadSync(path.join(planningDir(cwd), 'ROADMAP.md'));
+    if (roadmap === null) throw new Error('missing');
 
     // 0. Prefer STATE.md milestone: frontmatter as the authoritative source.
     // This prevents falling through to a regex that may match an old heading
@@ -1718,8 +1672,8 @@ function getMilestoneInfo(cwd) {
     if (cwd) {
       try {
         const statePath = path.join(planningDir(cwd), 'STATE.md');
-        if (fs.existsSync(statePath)) {
-          const stateRaw = fs.readFileSync(statePath, 'utf-8');
+        const stateRaw = platformReadSync(statePath);
+        if (stateRaw !== null) {
           const m = stateRaw.match(/^milestone:\s*(.+)/m);
           if (m) stateVersion = m[1].trim();
         }
@@ -1800,7 +1754,8 @@ function getMilestonePhaseFilter(cwd, versionOverride) {
   let missingExplicitVersion = false;
   try {
     const roadmapPath = path.join(planningDir(cwd), 'ROADMAP.md');
-    const roadmapContent = fs.readFileSync(roadmapPath, 'utf-8');
+    const roadmapContent = platformReadSync(roadmapPath);
+    if (roadmapContent === null) throw new Error('missing');
     let roadmap = extractCurrentMilestone(roadmapContent, cwd);
 
     if (versionOverride) {
@@ -1877,6 +1832,18 @@ function getMilestonePhaseFilter(cwd, versionOverride) {
     // Try custom ID match (e.g. PROJ-42-description → PROJ-42)
     const customMatch = dirName.match(/^([A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)/);
     if (customMatch && normalized.has(customMatch[1].toLowerCase())) return true;
+    // #3600: project-code-prefixed directory (`CK-01-name`) against a
+    // numeric ROADMAP heading (`### Phase 1:`). Strip the same prefix
+    // shape `normalizePhaseName` recognises (`^[A-Z]{1,6}-(?=\d)`) and
+    // retry the numeric match. This runs AFTER the custom-ID match so
+    // a roadmap that uses `Phase PROJ-42:` continues to win via the
+    // existing custom-ID path; the strip-and-retry only fires when the
+    // milestone is keyed on the bare numeric form.
+    const stripped = dirName.replace(/^[A-Z]{1,6}-(?=\d)/i, '');
+    if (stripped !== dirName) {
+      const sm = stripped.match(/^0*(\d+[A-Za-z]?(?:\.\d+)*)/);
+      if (sm && normalized.has(sm[1].toLowerCase())) return true;
+    }
     return false;
   }
   isDirInMilestone.phaseCount = milestonePhaseNums.size;
@@ -1928,38 +1895,6 @@ function readSubdirectories(dirPath, sort = false) {
   }
 }
 
-// ─── Atomic file writes ───────────────────────────────────────────────────────
-
-/**
- * Write a file atomically using write-to-temp-then-rename.
- *
- * On POSIX systems, `fs.renameSync` is atomic when the source and destination
- * are on the same filesystem. This prevents a process killed mid-write from
- * leaving a truncated file that is unparseable on next read.
- *
- * The temp file is placed alongside the target so it is guaranteed to be on
- * the same filesystem (required for rename atomicity). The PID is embedded in
- * the temp file name so concurrent writers use distinct paths.
- *
- * If `renameSync` fails (e.g. cross-device move), the function falls back to a
- * direct `writeFileSync` so callers always get a best-effort write.
- *
- * @param {string} filePath  Absolute path to write.
- * @param {string|Buffer} content  File content.
- * @param {string} [encoding='utf-8']  Encoding passed to writeFileSync.
- */
-function atomicWriteFileSync(filePath, content, encoding = 'utf-8') {
-  const tmpPath = filePath + '.tmp.' + process.pid;
-  try {
-    fs.writeFileSync(tmpPath, content, encoding);
-    fs.renameSync(tmpPath, filePath);
-  } catch (renameErr) {
-    // Clean up the temp file if rename failed, then fall back to direct write.
-    try { fs.unlinkSync(tmpPath); } catch { /* already gone or never created */ }
-    fs.writeFileSync(filePath, content, encoding);
-  }
-}
-
 /**
  * Format a Date as a fuzzy relative time string (e.g. "5 minutes ago").
  * @param {Date} date
@@ -1992,13 +1927,12 @@ module.exports = {
   ERROR_REASON,
   setJsonErrorMode,
   getJsonErrorMode,
-  safeReadFile,
   loadConfig,
   isGitIgnored,
-  execGit,
-  normalizeMd,
   escapeRegex,
   normalizePhaseName,
+  phaseMarkdownRegexSource,
+  phaseMarkdownRegexSourceExact,
   comparePhaseNum,
   searchPhaseInDir,
   extractPhaseToken,
@@ -2016,6 +1950,7 @@ module.exports = {
   resolveTierEntry,
   _resetRuntimeWarningCacheForTests,
   pathExistsInternal,
+  gitWorktreeInfoInternal,
   generateSlugInternal,
   getMilestoneInfo,
   getMilestonePhaseFilter,
@@ -2044,7 +1979,7 @@ module.exports = {
   readSubdirectories,
   getAgentsDir,
   checkAgentsInstalled,
-  atomicWriteFileSync,
   timeAgo,
   pruneOrphanedWorktrees,
+  inspectWorktreeHealth,
 };

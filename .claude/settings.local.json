@@ -5,9 +5,17 @@
       "Bash(rtk read *)",
       "Bash(git check-ignore *)",
       "Bash(rtk go *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(rtk git *)",
+      "Bash(rtk ls *)",
+      "Bash(rtk grep *)",
+      "mcp__code-review-graph__list_graph_stats_tool"
     ]
   },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ],
   "skillOverrides": {
     "api-design-principles": "name-only",
     "architecture-decision-records": "name-only",

@@ -17,7 +17,8 @@
       "Bash(git cherry-pick:*)",
       "Bash(git apply:*)",
       "Bash(gh:*)",
-      "Bash(go *)"
+      "Bash(go *)",
+      "mcp__code-review-graph__*"
     ]
   },
   "skillListingBudgetFraction": 0.05,
@@ -44,6 +45,16 @@
           {
             "type": "command",
             "command": "\"/Users/jfro/.nvm/versions/node/v24.3.0/bin/node\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-update-banner.js"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph status --repo \"/Users/jfro/workspace/fritid/version-check-mcp\" || echo 'Not a git repo, skipping'",
+            "timeout": 10
           }
         ]
       }
@@ -76,6 +87,16 @@
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-phase-boundary.sh",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph update --skip-flows --repo \"/Users/jfro/workspace/fritid/version-check-mcp\" || true",
+            "timeout": 30
           }
         ]
       }
