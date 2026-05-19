@@ -194,16 +194,20 @@ func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, mi
 	return registry.LatestResult{Version: highest, Source: SourceComputed}, nil
 }
 
-// Versions returns all known version strings for the package. The list comes
-// from the project's Releases map keys, which are already cached after the
-// first Validate or Latest call.
+// Versions returns all known non-yanked version strings for the package. The
+// list comes from the project's Releases map keys, filtered via isYanked per
+// PEP 592 (D-PYPI-01), and is already cached after the first Validate or
+// Latest call.
 func (a *Adapter) Versions(ctx context.Context, pkg string, incPre bool) ([]string, error) {
 	proj, err := a.projectFor(ctx, pkg, incPre)
 	if err != nil {
 		return nil, err
 	}
 	keys := make([]string, 0, len(proj.Releases))
-	for k := range proj.Releases {
+	for k, files := range proj.Releases {
+		if isYanked(files) {
+			continue // exclude yanked per PEP 592 - D-PYPI-01
+		}
 		keys = append(keys, k)
 	}
 	return keys, nil
