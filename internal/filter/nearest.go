@@ -160,14 +160,12 @@ func NearestVersions(versions []string, target string, vPrefixed bool, latestSta
 	}
 
 	// ---- latest_in_major ----
-	// Find the highest version within target's own major (excluding latestStable).
-	// Only add it if the best candidate isn't already in the result — we don't
-	// fall back to the second-highest (that would be noise, not signal).
+	// Find the highest version within target's own major.
+	// Do NOT skip normLatest here — the inResult check at emit time handles
+	// dedup, and skipping it during candidate selection would silently drop
+	// the true highest-in-major when latestStable is itself in that major.
 	var highestInMajor string
 	for _, v := range candidates {
-		if v == normLatest {
-			continue
-		}
 		if semver.Major(v) != targetMajor {
 			continue
 		}

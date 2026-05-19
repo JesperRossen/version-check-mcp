@@ -133,6 +133,23 @@ func TestNearestVersions(t *testing.T) {
 			wantVersions: []string{"3.0.0"},
 			wantReasons:  []string{"latest_stable"},
 		},
+		{
+			// MJ-03: when latestStable is the highest in target's major, it must
+			// still appear as latest_in_major candidate (dedup via inResult at emit
+			// time prevents it from appearing twice).
+			name:         "latest_in_major: latestStable in target major is not skipped",
+			versions:     []string{"v2.0.0", "v2.8.0"},
+			target:       "v2.9.0",
+			vPrefixed:    true,
+			latestStable: "v2.8.0",
+			// latestStable = v2.8.0 is also highest in major v2; it should appear
+			// as latest_stable only (not duplicated as latest_in_major).
+			// nearest_semver = v2.8.0 (same major, tier 2, dist 1) — but it equals
+			// latestStable so it is deduplicated too.
+			// Result: latestStable only, with v2.0.0 as nearest_semver.
+			wantVersions: []string{"v2.8.0", "v2.0.0"},
+			wantReasons:  []string{"latest_stable", "nearest_semver"},
+		},
 	}
 
 	for _, tc := range tests {
