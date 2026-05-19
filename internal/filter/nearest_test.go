@@ -78,8 +78,13 @@ func TestNearestVersions(t *testing.T) {
 			target:       "16.99.0",
 			vPrefixed:    false,
 			latestStable: "18.0.0",
+			// 16.14.0 is same-major as target (tier 2), so it ranks above 17.0.0
+			// (tier 3 / different-major). It becomes nearest_semver. latest_in_major
+			// also resolves to 16.14.0 but is skipped (= nearest_semver). 17.0.0
+			// is not in target's major so latest_in_major never picks it.
+			// Result: just 2 entries.
 			wantVersions: []string{"18.0.0", "16.14.0"},
-			wantReasons:  []string{"latest_stable", "latest_in_major"},
+			wantReasons:  []string{"latest_stable", "nearest_semver"},
 		},
 		{
 			name:         "deduplication: nearest_semver same as latestStable omitted",
