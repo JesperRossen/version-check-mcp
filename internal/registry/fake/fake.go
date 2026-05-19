@@ -32,18 +32,25 @@ type Fake struct {
 	LatestErr   error
 
 	// PanicOn controls the panic hook used by the recovery test:
-	//   "validate" → Validate panics
-	//   "latest"   → Latest   panics
-	//   "any"      → both panic
-	//   ""         → disabled
+	//   "validate"  → Validate panics
+	//   "latest"    → Latest   panics
+	//   "versions"  → Versions panics
+	//   "any"       → all panic
+	//   ""          → disabled
 	// Panic value is PanicMessage if non-empty, else "fake panic".
 	PanicOn      string
 	PanicMessage string
 
-	// ValidateCalls / LatestCalls count invocations. Used by handler tests
-	// to assert "Registry was NOT called" when input was range-rejected.
+	// VersionsList / VersionsErr configure the Versions method response.
+	VersionsList []string
+	VersionsErr  error
+
+	// ValidateCalls / LatestCalls / VersionsCalls count invocations. Used by
+	// handler tests to assert "Registry was NOT called" when input was
+	// range-rejected.
 	ValidateCalls atomic.Int64
 	LatestCalls   atomic.Int64
+	VersionsCalls atomic.Int64
 }
 
 // New constructs a Fake with sensible defaults: Source="fake",
@@ -85,6 +92,17 @@ func (f *Fake) panicValue() any {
 		return f.PanicMessage
 	}
 	return "fake panic"
+}
+
+func (f *Fake) Versions(ctx context.Context, pkg string, incPre bool) ([]string, error) {
+	f.VersionsCalls.Add(1)
+	if f.PanicOn == "versions" || f.PanicOn == "any" {
+		panic(f.panicValue())
+	}
+	if f.VersionsErr != nil {
+		return nil, f.VersionsErr
+	}
+	return f.VersionsList, nil
 }
 
 // Compile-time interface conformance check (D-06). The build fails if Fake

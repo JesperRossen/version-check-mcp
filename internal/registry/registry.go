@@ -35,6 +35,12 @@ type LatestResult struct {
 type Registry interface {
 	Validate(ctx context.Context, pkg, version string, incPre bool) (ValidateResult, error)
 	Latest(ctx context.Context, pkg string, incPre bool, major, minor *int) (LatestResult, error)
+	// Versions returns all known version strings for the package.
+	// The returned strings are in ecosystem-native form (v-prefixed for Go/GH,
+	// unprefixed for NPM/PyPI/Maven). Results come from the adapter's internal
+	// cache (populated by Validate or Latest calls) so no extra HTTP call occurs
+	// if the cache is warm. Per D-IF-02.
+	Versions(ctx context.Context, pkg string, incPre bool) ([]string, error)
 	// Name returns the manager identifier this registry serves: "npm",
 	// "pypi", "gomod", "gh", "maven", or "fake" (test double only).
 	Name() string
