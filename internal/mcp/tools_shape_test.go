@@ -131,14 +131,14 @@ func TestResponseShapeAudit(t *testing.T) {
 				session, done := connectInMemory(t, registries)
 				defer done()
 
-				res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
-					Name: "validate_version",
-					Arguments: map[string]any{
-						"manager": tc.manager,
-						"package": tc.pkg,
-						"version": tc.version,
-					},
-				})
+			res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+				Name: "validate_version",
+				Arguments: map[string]any{
+					"manager": tc.manager,
+					"pkg":     tc.pkg,
+					"version": tc.version,
+				},
+			})
 				if err != nil {
 					t.Fatalf("hit CallTool: %v", err)
 				}
@@ -167,14 +167,14 @@ func TestResponseShapeAudit(t *testing.T) {
 				session, done := connectInMemory(t, registries)
 				defer done()
 
-				res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
-					Name: "validate_version",
-					Arguments: map[string]any{
-						"manager": tc.manager,
-						"package": tc.pkg,
-						"version": tc.missVer,
-					},
-				})
+			res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+				Name: "validate_version",
+				Arguments: map[string]any{
+					"manager": tc.manager,
+					"pkg":     tc.pkg,
+					"version": tc.missVer,
+				},
+			})
 				if err != nil {
 					t.Fatalf("miss CallTool: %v", err)
 				}
