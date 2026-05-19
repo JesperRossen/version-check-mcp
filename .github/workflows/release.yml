@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: GoReleaser + MCPB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache: true
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          distribution: goreleaser
+          version: "v2.15.4"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node (for mcpb)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build MCPB bundle
+        env:
+          GITHUB_TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Install the official MCPB CLI (CI-only, not a Go dep)
+          npm install -g @anthropic-ai/mcpb
+
+          # Create the bundle staging directory
+          mkdir -p mcpb-staging/server
+
+          # Copy all platform binaries from GoReleaser dist/
+          for f in dist/version-check-mcp_*_darwin_amd64*/version-check-mcp \
+                   dist/version-check-mcp_*_darwin_arm64*/version-check-mcp \
+                   dist/version-check-mcp_*_linux_amd64*/version-check-mcp \
+                   dist/version-check-mcp_*_linux_arm64*/version-check-mcp \
+                   dist/version-check-mcp_*_windows_amd64*/version-check-mcp.exe; do
+            [ -f "$f" ] && cp "$f" mcpb-staging/server/ || true
+          done
+
+          # Extract version (strip "v" prefix) before heredoc to allow variable expansion
+          VERSION="${GITHUB_TAG#v}"
+
+          # Write manifest.json per locked decisions D-MCPB-01..04
+          cat > mcpb-staging/manifest.json <<EOF
+          {
+            "manifest_version": "0.3",
+            "name": "version-check-mcp",
+            "display_name": "version-check-mcp",
+            "description": "Resolves exact package versions from NPM, PyPI, Go Modules, GitHub Actions, and Maven.",
+            "version": "${VERSION}",
+            "schema_version": "1.0",
+            "server": {
+              "type": "stdio",
+              "command": "version-check-mcp"
+            },
+            "default_config": {
+              "mcpServers": {
+                "version-check-mcp": {
+                  "command": "version-check-mcp"
+                }
+              }
+            }
+          }
+          EOF
+
+          # Pack the bundle
+          cd mcpb-staging
+          mcpb pack --output ../version-check-mcp.mcpb .
+          cd ..
+
+          # Attach to the existing GitHub Release (created by GoReleaser)
+          gh release upload "${GITHUB_TAG}" version-check-mcp.mcpb --clobber
