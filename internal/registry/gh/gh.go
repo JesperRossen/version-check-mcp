@@ -246,3 +246,11 @@ func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, mi
 	}
 	return registry.LatestResult{Version: v, Source: sourceComputedHighest}, nil
 }
+
+// Versions returns all known version strings (tag names) for the repository.
+// The list comes from the cached tags, which are already populated after the
+// first Validate or Latest call. Tags are returned as-is (v-prefixed for
+// semver tags, but non-semver tags like "v6" are also included).
+func (a *Adapter) Versions(ctx context.Context, pkg string, incPre bool) ([]string, error) {
+	return a.tagsFor(ctx, pkg, incPre)
+}

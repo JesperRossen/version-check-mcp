@@ -106,3 +106,18 @@ func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, mi
 	}
 	return registry.LatestResult{Version: highest, Source: "computed-highest"}, nil
 }
+
+// Versions returns all known version strings for the package. The list comes
+// from the packument's Versions map, which is already cached after the first
+// Validate or Latest call.
+func (a *Adapter) Versions(ctx context.Context, pkg string, incPre bool) ([]string, error) {
+	p, err := a.packumentFor(ctx, pkg, incPre)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]string, 0, len(p.Versions))
+	for k := range p.Versions {
+		keys = append(keys, k)
+	}
+	return keys, nil
+}

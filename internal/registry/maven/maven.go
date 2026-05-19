@@ -182,3 +182,15 @@ func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, mi
 	}
 	return registry.LatestResult{Version: winner, Source: sourceComputedHighest}, nil
 }
+
+// Versions returns all known version strings for the package. The list comes
+// from the maven-metadata.xml <versions> element, which is already cached
+// after the first Validate or Latest call. Versions are unprefixed
+// (Maven ecosystem-native).
+func (a *Adapter) Versions(ctx context.Context, pkg string, incPre bool) ([]string, error) {
+	meta, err := a.metadataFor(ctx, pkg, incPre)
+	if err != nil {
+		return nil, err
+	}
+	return meta.Versioning.Versions, nil
+}

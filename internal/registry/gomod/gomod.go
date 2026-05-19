@@ -182,3 +182,10 @@ func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, mi
 	}
 	return registry.LatestResult{Version: highest, Source: sourceComputedHighest}, nil
 }
+
+// Versions returns all known version strings for the module. The list comes
+// from the proxy @v/list endpoint, which is already cached after the first
+// Validate or Latest call. Versions are v-prefixed (Go ecosystem-native).
+func (a *Adapter) Versions(ctx context.Context, pkg string, incPre bool) ([]string, error) {
+	return a.listFor(ctx, pkg, incPre)
+}
