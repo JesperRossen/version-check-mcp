@@ -6,6 +6,14 @@ A Lightweight Version Validator for AI Coding Agents
 Download the latest binary for your platform from
 [GitHub Releases](https://github.com/JesperRossen/version-check-mcp/releases/latest).
 
+### One-click install via MCPB bundle (recommended)
+
+Download `version-check-mcp.mcpb` from
+[GitHub Releases](https://github.com/JesperRossen/version-check-mcp/releases/latest)
+and open it - Claude Desktop installs the server automatically with a pre-filled
+`mcpServers` configuration entry. No PATH setup required. The mcpb format bundles
+all platform binaries into a single portable archive.
+
 ### Verify checksum (recommended)
 
 ```sh
