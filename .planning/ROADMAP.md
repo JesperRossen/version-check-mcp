@@ -21,8 +21,8 @@
 ## Phases
 
 - [x] **Phase 1: Foundation & MCP Scaffolding** - Stdout-safe MCP server skeleton, dependency discipline, schema contract, tool stubs, cache+singleflight, registry interface, binary-level stdout integration test (completed 2026-05-12)
-- [ ] **Phase 2: NPM Adapter & End-to-End Spine** - First adapter end-to-end through both tools, validates the architecture under one ecosystem, fixture infrastructure
-- [ ] **Phase 3: Remaining Registry Adapters** - PyPI, Go Modules, GitHub Actions, Maven Central adapters (mutually independent, internally parallelizable)
+- [x] **Phase 2: NPM Adapter & End-to-End Spine** - First adapter end-to-end through both tools, validates the architecture under one ecosystem, fixture infrastructure (completed 2026-05-13)
+- [x] **Phase 3: Remaining Registry Adapters** - PyPI, Go Modules, GitHub Actions, Maven Central adapters (mutually independent, internally parallelizable) (completed 2026-05-15)
 - [x] **Phase 4: Alternatives & Response-Shape Hardening** - Cross-registry alternatives suggestion, ecosystem-native version-string verification, response shape audit (completed 2026-05-19)
 - [ ] **Phase 5: Distribution** - Multi-arch GoReleaser binaries, MCPB bundle, checksums, macOS quarantine doc
 - [ ] **Phase 6: Dogfooding & v1.0.0** - Wire into Claude Desktop, daily-use validation window, tag v1.0.0
@@ -71,7 +71,22 @@
 4. The recorded-fixture test suite runs deterministically in CI against `testdata/fixtures/npm/` using only stdlib comparison helpers (no `goldie`, no `cupaloy`); an `-update` flag (or env var) regenerates fixtures; one fixture exercises the scoped-package gotcha.
 5. A cold-start benchmark exists in CI and reports startup time on every build (advisory only — regression noted, not failing).
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [x] 02-01-PLAN.md — Wave 1: fixture-replay infrastructure (`internal/testfixtures/`), NPM URL builder with scoped-package encoding, initial fixtures (react, @types/node, 404)
+- [x] 02-02-PLAN.md — Wave 1: LAT-05 version-list filter as pure function — `(versions, incPre, *major, *minor) -> (highest, ok)` — independent of HTTP/cache/adapter
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 02-03-PLAN.md — Wave 2: NPM adapter implementing Registry interface (VAL-01, VAL-02, LAT-01, REG-01, TEST-01/02), fixture-tested against react and @types/node
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 02-04-PLAN.md — Wave 3: wire NPM adapter into production binary; end-to-end MCP JSON-RPC-over-stdio test for validate_version + get_latest_version
+- [x] 02-05-PLAN.md — Wave 3: CI workflow (full test suite + cold-start benchmark to GITHUB_STEP_SUMMARY, advisory only) closing TEST-04
 
 ---
 
@@ -156,7 +171,11 @@ Plans:
 3. A `version-check-mcp.mcpb` bundle is produced by an `@anthropic-ai/mcpb pack` post-build step (manifest_version 0.3), attached to the same GitHub Release, and installs into Claude Desktop in one click.
 4. The README documents the macOS `xattr -d com.apple.quarantine` workaround for unsigned binaries; downloading the macOS artifact and following the README produces a working server.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Wave 1: tzdata import + .goreleaser.yaml (5 targets, CGO=0, SHA256, prerelease:auto) + README quick-start
+- [ ] 05-02-PLAN.md — Wave 2: .github/workflows/release.yml (GoReleaser + MCPB pack + gh release upload) + README MCPB section
 
 ---
 

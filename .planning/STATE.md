@@ -2,20 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0.0
 milestone_name: "**Goal**: The author uses the released binary daily through Claude Desktop, validates the wedge against real version-hallucination workflows, and tags v1.0.0 once the dogfood window is stable."
-status: ready_to_plan
-last_updated: 2026-05-19T12:08:55.490Z
+status: executing
+last_updated: "2026-05-19T16:08:36.560Z"
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 5
+  completed_phases: 4
+  total_plans: 18
   completed_plans: 18
-  percent: 33
-stopped_at: Phase 04 complete (3/3) — ready to discuss Phase 5
+  percent: 67
 ---
 
 # State: Version Check MCP
 
-**Updated:** 2026-05-12 (initial)
+**Updated:** 2026-05-19
 
 ## Project Reference
 
@@ -25,14 +24,14 @@ stopped_at: Phase 04 complete (3/3) — ready to discuss Phase 5
 
 ## Current Position
 
-Phase: 04 (alternatives-response-shape-hardening) — EXECUTING
+Phase: 04 (alternatives-response-shape-hardening) — COMPLETE
 Plan: 3 of 3 (COMPLETE)
 
 - **Milestone:** v1
-- **Phase:** 5
+- **Phase:** 5 (not yet planned)
 - **Plan:** Not started
-- **Status:** Ready to plan
-- **Progress:** `[░░░░░░░░░░] 0% (0/6 phases)`
+- **Status:** Ready to execute
+- **Progress:** `[████████░░] 67% (4/6 phases)`
 
 ## Performance Metrics
 
@@ -41,7 +40,7 @@ Plan: 3 of 3 (COMPLETE)
 | Cold start | <20ms | not measured |
 | Direct dependencies | 4 | 0 (no code yet) |
 | v1 requirement coverage | 40/40 | 40/40 in roadmap, 0/40 implemented |
-| Phases complete | 6 | 0 |
+| Phases complete | 6 | 4 |
 
 ## Accumulated Context
 
@@ -60,7 +59,9 @@ Plan: 3 of 3 (COMPLETE)
 ### Open Todos
 
 - [ ] Update PROJECT.md Go version constraint from `1.22+` to `1.25+`
-- [ ] Run `/gsd-plan-phase 1` to decompose Phase 1 into plans
+- [ ] Fix code review MJ-01: `tools_shape_test.go` sends `"package"` key but handler expects `"pkg"`
+- [ ] Fix code review MJ-03: `latest_in_major` candidate loop skips `v == normLatest` too early
+- [ ] Fix code review MJ-04: PyPI `Versions()` includes yanked releases
 
 ### Blockers
 
@@ -78,8 +79,8 @@ None.
 
 ## Session Continuity
 
-- **Last action:** Phase 04, Plan 03 complete — alternatives wired into miss path + cross-registry shape audit test
-- **Next action:** `/gsd-plan-phase 5` — plan Phase 5 (NPM + PyPI + GoMod registry adapters or similar)
+- **Last action:** Phase 05 context gathered — discuss complete, 4 decisions locked (release trigger, pre-release tagging, MCPB manifest, README scope)
+- **Next action:** Plan Phase 5 (Distribution) with `/gsd-plan-phase 5`
 - **Files of record:**
   - `.planning/PROJECT.md`
   - `.planning/REQUIREMENTS.md`
