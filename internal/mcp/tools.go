@@ -3,10 +3,13 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/JesperRossen/version-check-mcp/internal/errs"
+	"github.com/JesperRossen/version-check-mcp/internal/filter"
+	"github.com/JesperRossen/version-check-mcp/internal/registry"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -99,6 +102,10 @@ func (s *Server) validateRawHandler(ctx context.Context, req *sdkmcp.CallToolReq
 
 	res, err := reg.Validate(ctx, in.Pkg, in.Version, in.IncludePrereleases)
 	if err != nil {
+		var e *errs.E
+		if errors.As(err, &e) && e.Kind == errs.KindNotFound {
+			return s.buildMissResponse(ctx, reg, in)
+		}
 		return toCallToolResult(err, in.Version), nil
 	}
 
@@ -106,6 +113,35 @@ func (s *Server) validateRawHandler(ctx context.Context, req *sdkmcp.CallToolReq
 		"exists":            res.Exists,
 		"source":            res.Source,
 		"requested_version": in.Version,
+	}), nil
+}
+
+// buildMissResponse assembles the success-shaped alternatives response (D-MISS-01).
+func (s *Server) buildMissResponse(ctx context.Context, reg registry.Registry, in ValidateInput) (*sdkmcp.CallToolResult, error) {
+	// Determine if this registry uses v-prefixed versions.
+	vPrefixed := reg.Name() == "gomod" || reg.Name() == "gh"
+
+	// Get version list from cache (no HTTP — cache was populated by Validate call).
+	versions, err := reg.Versions(ctx, in.Pkg, in.IncludePrereleases)
+	if err != nil {
+		return toCallToolResult(err, in.Version), nil
+	}
+
+	// Get latest stable (also a cache hit).
+	latestRes, err := reg.Latest(ctx, in.Pkg, false, nil, nil)
+	latestStable := ""
+	if err == nil {
+		latestStable = latestRes.Version
+	}
+
+	// Compute alternatives.
+	alts := filter.NearestVersions(versions, in.Version, vPrefixed, latestStable)
+
+	return successResult(in.Version, map[string]any{
+		"exists":            false,
+		"requested_version": in.Version,
+		"latest_stable":     latestStable,
+		"alternatives":      alts,
 	}), nil
 }
 

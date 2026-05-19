@@ -180,7 +180,6 @@ func TestErrorEnvelopeShape(t *testing.T) {
 		want string
 	}{
 		{"rate_limited", errs.RateLimited(time.Now().Add(time.Minute)), "rate_limited"},
-		{"not_found", errs.NotFound("missing"), "not_found"},
 		{"upstream_down", errs.UpstreamDown(errs.NotFound("x")), "upstream_down"},
 		{"invalid_input", errs.InvalidInput("bad"), "invalid_input"},
 	}
@@ -207,6 +206,40 @@ func TestErrorEnvelopeShape(t *testing.T) {
 				t.Errorf("error.type = %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+// TestNotFoundProducesMissShape verifies that KindNotFound now routes to the
+// success-shaped miss response (D-MISS-01) rather than the error envelope.
+func TestNotFoundProducesMissShape(t *testing.T) {
+	f := fake.New("npm")
+	f.ValidateErr = errs.NotFound("missing")
+	f.VersionsList = []string{"1.0.0", "1.1.0", "2.0.0"}
+	f.LatestResult = registry.LatestResult{Version: "2.0.0", Source: "fake"}
+	session, done := connectInMemory(t, map[internalmcp.Manager]registry.Registry{
+		internalmcp.ManagerNPM: f,
+	})
+	defer done()
+
+	res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+		Name:      "validate_version",
+		Arguments: map[string]any{"manager": "npm", "package": "react", "version": "1.0.0"},
+	})
+	if err != nil {
+		t.Fatalf("CallTool: %v", err)
+	}
+	if res.IsError {
+		t.Errorf("IsError=true, want false (not_found routes to miss shape in D-MISS-01)")
+	}
+	sc := structuredContent(t, res)
+	if exists, _ := sc["exists"].(bool); exists {
+		t.Errorf("exists=true, want false")
+	}
+	if _, ok := sc["alternatives"]; !ok {
+		t.Errorf("missing 'alternatives' key in miss response")
+	}
+	if _, ok := sc["latest_stable"]; !ok {
+		t.Errorf("missing 'latest_stable' key in miss response")
 	}
 }
 
