@@ -122,6 +122,17 @@ func TestNearestVersions(t *testing.T) {
 			wantVersions: []string{"1.0.0"},
 			wantReasons:  []string{"latest_stable"},
 		},
+		{
+			// MJ-02: invalid-semver target (e.g. PEP 440 epoch "1!2.0.0") must
+			// short-circuit to latestStable only, even when rankable versions exist.
+			name:         "invalid-semver target short-circuits to latestStable only",
+			versions:     []string{"1.0.0", "2.0.0", "3.0.0"},
+			target:       "1!2.0.0",
+			vPrefixed:    false,
+			latestStable: "3.0.0",
+			wantVersions: []string{"3.0.0"},
+			wantReasons:  []string{"latest_stable"},
+		},
 	}
 
 	for _, tc := range tests {

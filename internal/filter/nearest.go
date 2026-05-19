@@ -40,6 +40,9 @@ const (
 //   - latestStable: the overall latest stable version (always first in result).
 //
 // Returns nil when versions is empty or latestStable is empty.
+// If target is not valid semver (e.g. a Go pseudo-version or a PEP 440 epoch
+// version like "1!2.0.0"), distance ranking is skipped and the result contains
+// only latestStable with reason "latest_stable".
 func NearestVersions(versions []string, target string, vPrefixed bool, latestStable string) []AlternativeEntry {
 	if len(versions) == 0 || latestStable == "" {
 		return nil
