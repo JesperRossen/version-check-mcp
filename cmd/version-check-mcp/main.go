@@ -3,6 +3,8 @@
 package main
 
 import (
+	_ "time/tzdata" // embed tz data for static binary
+
 	"context"
 	"errors"
 	"flag"
