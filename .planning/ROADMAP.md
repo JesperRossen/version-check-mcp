@@ -24,7 +24,7 @@
 - [x] **Phase 2: NPM Adapter & End-to-End Spine** - First adapter end-to-end through both tools, validates the architecture under one ecosystem, fixture infrastructure (completed 2026-05-13)
 - [x] **Phase 3: Remaining Registry Adapters** - PyPI, Go Modules, GitHub Actions, Maven Central adapters (mutually independent, internally parallelizable) (completed 2026-05-15)
 - [x] **Phase 4: Alternatives & Response-Shape Hardening** - Cross-registry alternatives suggestion, ecosystem-native version-string verification, response shape audit (completed 2026-05-19)
-- [ ] **Phase 5: Distribution** - Multi-arch GoReleaser binaries, MCPB bundle, checksums, macOS quarantine doc
+- [x] **Phase 5: Distribution** - Multi-arch GoReleaser binaries, MCPB bundle, checksums, macOS quarantine doc (completed 2026-05-19)
 - [ ] **Phase 6: Dogfooding & v1.0.0** - Wire into Claude Desktop, daily-use validation window, tag v1.0.0
 
 ## Phase Details
@@ -174,8 +174,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Wave 1: tzdata import + .goreleaser.yaml (5 targets, CGO=0, SHA256, prerelease:auto) + README quick-start
-- [ ] 05-02-PLAN.md — Wave 2: .github/workflows/release.yml (GoReleaser + MCPB pack + gh release upload) + README MCPB section
+- [x] 05-01-PLAN.md — Wave 1: tzdata import + .goreleaser.yaml (5 targets, CGO=0, SHA256, prerelease:auto) + README quick-start
+- [x] 05-02-PLAN.md — Wave 2: .github/workflows/release.yml (GoReleaser + MCPB pack + gh release upload) + README MCPB section
 
 ---
 
