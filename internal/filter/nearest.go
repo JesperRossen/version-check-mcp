@@ -60,7 +60,8 @@ func NearestVersions(versions []string, target string, vPrefixed bool, latestSta
 
 	// Build filtered candidate list (valid, non-prerelease, non-pseudo).
 	// Stored with "v" prefix for semver comparisons.
-	var candidates []string
+	// Pre-size to len(versions) as an upper bound — filtered count cannot exceed it.
+	candidates := make([]string, 0, len(versions))
 	for _, raw := range versions {
 		v := raw
 		if !vPrefixed {
@@ -106,7 +107,8 @@ func NearestVersions(versions []string, target string, vPrefixed bool, latestSta
 		tier  int // 1=same minor, 2=same major, 3=different major
 		dist  int // primary distance within tier
 	}
-	var byDist []ranked
+	// Pre-size byDist to len(candidates) — the loop cannot produce more entries.
+	byDist := make([]ranked, 0, len(candidates))
 	for _, v := range candidates {
 		if inResult[v] {
 			continue
