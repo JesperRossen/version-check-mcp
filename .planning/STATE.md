@@ -14,7 +14,7 @@ progress:
 
 # State: Version Check MCP
 
-**Updated:** 2026-05-19
+**Updated:** 2026-05-20
 
 ## Project Reference
 
@@ -24,14 +24,14 @@ progress:
 
 ## Current Position
 
-Phase: 06 (code-review-cleanup) — IN PROGRESS
-Plan: 1 of 2 (COMPLETE)
+Phase: 06 (code-review-cleanup) — COMPLETE
+Plan: 2 of 2 (COMPLETE)
 
 - **Milestone:** v1
-- **Phase:** 6 (executing — 2 plans)
-- **Plan:** 1 complete, 1 remaining
-- **Status:** Executing
-- **Progress:** [████████░░] 75%
+- **Phase:** 6 (complete — 2 plans)
+- **Plan:** 2 complete, 0 remaining
+- **Status:** Executing (Phase 7 next)
+- **Progress:** [█████████░] 85%
 
 ## Performance Metrics
 
@@ -77,10 +77,30 @@ None.
 - **Maven group path** — dots become slashes in URL (`org.springframework` → `org/springframework/`).
 - **Cache must be tiered** — successes full TTL, 404s short TTL, 5xx never cached as success.
 
+### Performance Audit (Phase 6)
+
+**Date:** 2026-05-20
+**Scope:** All 5 adapters + internal/filter/nearest.go
+
+**Findings applied:**
+- `nearest.go NearestVersions`: pre-sized `candidates` slice with `make([]string, 0, len(versions))` (was unbounded `var candidates []string`)
+- `nearest.go NearestVersions`: pre-sized `byDist` slice with `make([]ranked, 0, len(candidates))` (was unbounded `var byDist []ranked`)
+
+**Findings documented (out-of-scope for v1):**
+- PyPI `Validate()` iterates `Releases` map with normalized key comparison (O(n) scan) — acceptable for typical package sizes (<1000 versions); a lookup map could speed this up but adds complexity not warranted at this scale
+- `nearest.go` `parseParts` is called 2x per candidate in same-minor/same-major tiers (once for target, once per candidate) — memoizing target parse could help but n < 1000 in practice
+
+**Dependency audit:**
+- go-sdk: Required (MCP protocol — removing requires hand-rolling JSON-RPC + MCP spec)
+- golang-lru/v2: Required (bounded LRU+TTL cache, CACHE-01..04 — stdlib alternatives require hand-rolling eviction)
+- x/sync: Required (singleflight in cache.GetOrLoad — confirmed by `internal/cache/cache.go:22`)
+- x/mod: Required (semver comparison, module.IsPseudoVersion in gomod/filter, modfile in depcheck — confirmed by grep)
+- All 4 direct deps confirmed necessary — DEP-01 invariant holds
+
 ## Session Continuity
 
-- **Last action:** Phase 06 Plan 01 complete — npm adapter migrated to shared httperr + filter; 4 private files deleted; all STATE.md open todos confirmed resolved
-- **Next action:** Execute Phase 06 Plan 02
+- **Last action:** Phase 06 Plan 02 complete — performance audit pass; 2 pre-sizing wins applied in nearest.go; all 4 deps confirmed necessary
+- **Next action:** Phase 06 complete — proceed to Phase 07 (Dogfooding)
 
 ### Roadmap Evolution
 
