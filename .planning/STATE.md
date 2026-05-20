@@ -5,11 +5,11 @@ milestone_name: "**Goal**: The author uses the released binary daily through Cla
 status: executing
 last_updated: "2026-05-19T00:00:00.000Z"
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 5
   total_plans: 20
   completed_plans: 20
-  percent: 83
+  percent: 71
 ---
 
 # State: Version Check MCP
@@ -28,10 +28,10 @@ Phase: 05 (distribution) — COMPLETE
 Plan: 2 of 2 (COMPLETE)
 
 - **Milestone:** v1
-- **Phase:** 6 (not yet planned)
+- **Phase:** 6 (planned — 2 plans, ready to execute)
 - **Plan:** Not started
-- **Status:** Ready to plan
-- **Progress:** [████████░░] 83%
+- **Status:** Ready to execute
+- **Progress:** [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -58,10 +58,10 @@ Plan: 2 of 2 (COMPLETE)
 
 ### Open Todos
 
-- [ ] Update PROJECT.md Go version constraint from `1.22+` to `1.25+`
-- [ ] Fix code review MJ-01: `tools_shape_test.go` sends `"package"` key but handler expects `"pkg"`
-- [ ] Fix code review MJ-03: `latest_in_major` candidate loop skips `v == normLatest` too early
-- [ ] Fix code review MJ-04: PyPI `Versions()` includes yanked releases
+- [x] Update PROJECT.md Go version constraint from `1.22+` to `1.25+` — DONE (PROJECT.md already correct; confirmed Go 1.25+ in Constraints section)
+- [x] Fix code review MJ-01: `tools_shape_test.go` sends `"package"` key but handler expects `"pkg"` — CONFIRMED FIXED (test already uses "pkg"; grep confirms no "package" key in tools_shape_test.go)
+- [x] Fix code review MJ-03: `latest_in_major` candidate loop skips `v == normLatest` too early — CONFIRMED FIXED (inResult dedup handles it; all 13 TestNearestVersions sub-tests pass)
+- [x] Fix code review MJ-04: PyPI `Versions()` includes yanked releases — CONFIRMED FIXED (Versions() already filters yanked per PEP 592; TestLatest_YankedVersionSkipped passes)
 
 ### Blockers
 
@@ -81,6 +81,10 @@ None.
 
 - **Last action:** Phase 05 complete — GoReleaser config (5 targets, CGO=0, SHA256), tzdata embed, release.yml (tag-triggered GoReleaser+MCPB), README install+MCPB sections
 - **Next action:** Plan Phase 6 with `/gsd-plan-phase 6`
+
+### Roadmap Evolution
+
+- Phase 6 added: Code Review & Cleanup (inserted before Dogfooding; old Phase 6 renumbered to Phase 7)
 - **Files of record:**
   - `.planning/PROJECT.md`
   - `.planning/REQUIREMENTS.md`
