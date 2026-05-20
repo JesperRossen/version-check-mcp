@@ -26,7 +26,7 @@
 - [x] **Phase 4: Alternatives & Response-Shape Hardening** - Cross-registry alternatives suggestion, ecosystem-native version-string verification, response shape audit (completed 2026-05-19)
 - [x] **Phase 5: Distribution** - Multi-arch GoReleaser binaries, MCPB bundle, checksums, macOS quarantine doc (completed 2026-05-19)
 - [x] **Phase 6: Code Review & Cleanup** - Simplify code and structure, dependency audit, optimization opportunities (completed 2026-05-20)
-- [ ] **Phase 7: Dogfooding & v1.0.0** - Wire into Claude Desktop, daily-use validation window, tag v1.0.0
+- [ ] **Phase 7: Dogfooding, Multi-Agent Setup & v1.0.0** - Wire into Claude Desktop + Claude Code CLI + OpenCode, write setup docs for Codex/Gemini, daily-use validation window, tag v1.0.0
 
 ## Phase Details
 
@@ -203,9 +203,9 @@ Plans:
 
 ---
 
-### Phase 7: Dogfooding & v1.0.0
+### Phase 7: Dogfooding, Multi-Agent Setup & v1.0.0
 
-**Goal**: The author uses the released binary daily through Claude Desktop, validates the wedge against real version-hallucination workflows, and tags v1.0.0 once the dogfood window is stable.
+**Goal**: The author uses the released binary daily through multiple AI coding agents (Claude Desktop, Claude Code CLI, OpenCode, and documents setup for Codex, Gemini CLI, and other popular tools), validates the wedge against real version-hallucination workflows, and tags v1.0.0 once the dogfood window is stable.
 
 **Depends on**: Phase 6
 
@@ -214,17 +214,20 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
 1. The MCPB bundle is installed into Claude Desktop and the two tools appear in the tool list with their LLM-readable descriptions intact.
-2. A defined dogfood window (e.g. ≥7 days of daily use) elapses with structured logs captured to stderr; rate-limit, not-found, and upstream-down events are observable in the logs, not just successes.
-3. No P0 bugs (stdout corruption, wrong-by-default latest-stable, scoped-package failure, `+incompatible` mishandling, Maven group-path bug) are open at the end of the window.
-4. A `v1.0.0` git tag is cut once the window closes stable; the corresponding GitHub Release is the first non-pre tagged release.
+2. The binary is configured and working in at least one CLI-based agent (Claude Code CLI or OpenCode) using the stdio MCP server setup; both tools are callable and return correct results.
+3. The README (or a dedicated `docs/setup/` section) contains verified setup instructions for each supported agent category: (a) Claude Desktop via MCPB, (b) Claude Code CLI via `.claude/mcp.json` or equivalent, (c) OpenCode via `opencode.json`, (d) stub/reference instructions for Codex CLI and Gemini CLI indicating the stdio server invocation pattern.
+4. A defined dogfood window (e.g. ≥7 days of daily use) elapses with structured logs captured to stderr; rate-limit, not-found, and upstream-down events are observable in the logs, not just successes.
+5. No P0 bugs (stdout corruption, wrong-by-default latest-stable, scoped-package failure, `+incompatible` mishandling, Maven group-path bug) are open at the end of the window.
+6. A `v1.0.0` git tag is cut once the window closes stable; the corresponding GitHub Release is the first non-pre tagged release.
 
-**Plans**: 4 plans
+**Plans**: 5 plans (estimated)
 
 Plans:
 - [ ] 07-01-PLAN.md — Wave 1: pre-flight checks (verify open todos resolved, all tests green, binary smoke test, DOGFOOD.md template)
 - [ ] 07-02-PLAN.md — Wave 2: install MCPB into Claude Desktop, verify both tools visible and callable (human checkpoint)
-- [ ] 07-03-PLAN.md — Wave 3: validate ≥7-day dogfood window, confirm P0 tracker clean, author sign-off (human checkpoint)
-- [ ] 07-04-PLAN.md — Wave 4: write CHANGELOG.md, push v1.0.0 tag, verify release pipeline on GitHub Actions (human checkpoint)
+- [ ] 07-03-PLAN.md — Wave 2: write multi-agent setup docs (Claude Code CLI, OpenCode, Codex, Gemini CLI stubs) and update README
+- [ ] 07-04-PLAN.md — Wave 3: validate ≥7-day dogfood window across agents, confirm P0 tracker clean, author sign-off (human checkpoint)
+- [ ] 07-05-PLAN.md — Wave 4: write CHANGELOG.md, push v1.0.0 tag, verify release pipeline on GitHub Actions (human checkpoint)
 
 ---
 
@@ -253,7 +256,7 @@ All 40 v1 requirements mapped to exactly one phase. No orphans, no duplicates.
 | 4. Alternatives & Response-Shape Hardening | 3/3 | Complete | 2026-05-19 |
 | 5. Distribution | 2/2 | Complete | 2026-05-19 |
 | 6. Code Review & Cleanup | 0/? | Not started | - |
-| 7. Dogfooding & v1.0.0 | 0/4 | Not started | - |
+| 7. Dogfooding, Multi-Agent Setup & v1.0.0 | 0/5 | Not started | - |
 
 ---
 *Roadmap created: 2026-05-12*
