@@ -25,7 +25,7 @@
 - [x] **Phase 3: Remaining Registry Adapters** - PyPI, Go Modules, GitHub Actions, Maven Central adapters (mutually independent, internally parallelizable) (completed 2026-05-15)
 - [x] **Phase 4: Alternatives & Response-Shape Hardening** - Cross-registry alternatives suggestion, ecosystem-native version-string verification, response shape audit (completed 2026-05-19)
 - [x] **Phase 5: Distribution** - Multi-arch GoReleaser binaries, MCPB bundle, checksums, macOS quarantine doc (completed 2026-05-19)
-- [ ] **Phase 6: Code Review & Cleanup** - Simplify code and structure, dependency audit, optimization opportunities
+- [x] **Phase 6: Code Review & Cleanup** - Simplify code and structure, dependency audit, optimization opportunities (completed 2026-05-20)
 - [ ] **Phase 7: Dogfooding & v1.0.0** - Wire into Claude Desktop, daily-use validation window, tag v1.0.0
 
 ## Phase Details
@@ -199,7 +199,7 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md — Wave 1: migrate npm to shared httperr+filter, delete private duplicates, close STATE.md open todos, fix PROJECT.md Go version
-- [ ] 06-02-PLAN.md — Wave 2 *(blocked on Wave 1 completion)*: performance audit pass (all 5 adapters + nearest.go), dependency audit, document findings
+- [x] 06-02-PLAN.md — Wave 2: performance audit pass (all 5 adapters + nearest.go), dependency audit, document findings
 
 ---
 

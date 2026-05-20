@@ -2,6 +2,7 @@ package npm
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
@@ -48,7 +49,8 @@ func (a *Adapter) packumentFor(ctx context.Context, pkg string, incPre bool) (*P
 		if resp.StatusCode != http.StatusOK {
 			return nil, httperr.MapHTTPStatus(resp, pkg, "npm")
 		}
-		p, err := parsePackument(resp.Body)
+		const maxPackumentBytes = 32 << 20 // 32 MiB — generous upper bound for any real packument
+		p, err := parsePackument(io.LimitReader(resp.Body, maxPackumentBytes))
 		if err != nil {
 			return nil, errs.UpstreamDown(err, "pkg", pkg, "reason", "malformed_body")
 		}

@@ -99,8 +99,15 @@ None.
 
 ## Session Continuity
 
-- **Last action:** Phase 06 Plan 02 complete — performance audit pass; 2 pre-sizing wins applied in nearest.go; all 4 deps confirmed necessary
-- **Next action:** Phase 06 complete — proceed to Phase 07 (Dogfooding)
+- **Last action:** Phase 06 complete — code review PASS_WITH_NOTES (2 warnings noted in 06-REVIEW.md); all tests pass; ROADMAP.md updated
+- **Next action:** Phase 07 (Dogfooding & v1.0.0)
+
+### Phase 06 Code Review Notes (PASS_WITH_NOTES)
+
+See `.planning/phases/06-code-review-cleanup/06-REVIEW.md` for full findings.
+
+- **WARNING** `npm.go:51` — Unbounded HTTP response body passed to JSON decoder; large packages (e.g. `@types/node` ~10 MiB) could exhaust memory. Fix: wrap with `io.LimitReader(resp.Body, 32<<20)` before passing to `parsePackument`. Deferred to Phase 7 or hotfix.
+- **WARNING** `nearest.go:27` — Doc-comment says "at most 5" but result is never trimmed. Currently capped at 3 in practice; tighten doc-comment or add `if len(result) > 5 { result = result[:5] }`. Deferred to Phase 7 or hotfix.
 
 ### Roadmap Evolution
 
