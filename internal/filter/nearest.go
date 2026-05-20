@@ -189,6 +189,14 @@ func NearestVersions(versions []string, target string, vPrefixed bool, latestSta
 		inResult[latestInMajorNorm] = true
 	}
 
+	// Enforce the documented cap: at most 5 alternatives. The current
+	// implementation produces at most 3, but future additions could exceed
+	// the limit without this guard.
+	const maxAlternatives = 5
+	if len(result) > maxAlternatives {
+		result = result[:maxAlternatives]
+	}
+
 	return result
 }
 
