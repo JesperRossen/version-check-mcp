@@ -2,7 +2,7 @@
 
 **Created:** 2026-05-12
 **Granularity:** standard
-**Phases:** 6
+**Phases:** 7
 **v1 Requirements:** 41 (all mapped)
 **Parallelization:** enabled (Phase 3 internal adapters parallel)
 
@@ -25,7 +25,8 @@
 - [x] **Phase 3: Remaining Registry Adapters** - PyPI, Go Modules, GitHub Actions, Maven Central adapters (mutually independent, internally parallelizable) (completed 2026-05-15)
 - [x] **Phase 4: Alternatives & Response-Shape Hardening** - Cross-registry alternatives suggestion, ecosystem-native version-string verification, response shape audit (completed 2026-05-19)
 - [x] **Phase 5: Distribution** - Multi-arch GoReleaser binaries, MCPB bundle, checksums, macOS quarantine doc (completed 2026-05-19)
-- [ ] **Phase 6: Dogfooding & v1.0.0** - Wire into Claude Desktop, daily-use validation window, tag v1.0.0
+- [ ] **Phase 6: Code Review & Cleanup** - Simplify code and structure, dependency audit, optimization opportunities
+- [ ] **Phase 7: Dogfooding & v1.0.0** - Wire into Claude Desktop, daily-use validation window, tag v1.0.0
 
 ## Phase Details
 
@@ -179,11 +180,34 @@ Plans:
 
 ---
 
-### Phase 6: Dogfooding & v1.0.0
+### Phase 6: Code Review & Cleanup
+
+**Goal**: Audit the codebase for simplification opportunities, verify dependency minimalism, identify optimization wins, and address any code quality issues before the dogfood window.
+
+**Depends on**: Phase 5
+
+**Requirements**: None (internal quality gate)
+
+**Success Criteria** (what must be TRUE):
+
+1. No direct dependency can be removed without losing functionality - the four allowed deps are all still necessary and justified.
+2. Any structural simplifications (package consolidation, dead-code removal, redundant abstraction) are applied and all tests still pass.
+3. At least one pass over all five adapters looking for performance wins (repeated allocations, unnecessary HTTP round-trips, redundant parsing) has been completed and findings either fixed or documented as out-of-scope.
+4. All `go vet`, `go build`, and `go test ./...` pass cleanly after changes.
+
+**Plans**: 2 plans
+
+Plans:
+- [x] 06-01-PLAN.md — Wave 1: migrate npm to shared httperr+filter, delete private duplicates, close STATE.md open todos, fix PROJECT.md Go version
+- [ ] 06-02-PLAN.md — Wave 2 *(blocked on Wave 1 completion)*: performance audit pass (all 5 adapters + nearest.go), dependency audit, document findings
+
+---
+
+### Phase 7: Dogfooding & v1.0.0
 
 **Goal**: The author uses the released binary daily through Claude Desktop, validates the wedge against real version-hallucination workflows, and tags v1.0.0 once the dogfood window is stable.
 
-**Depends on**: Phase 5
+**Depends on**: Phase 6
 
 **Requirements**: VALD-01, VALD-02
 
@@ -194,7 +218,13 @@ Plans:
 3. No P0 bugs (stdout corruption, wrong-by-default latest-stable, scoped-package failure, `+incompatible` mishandling, Maven group-path bug) are open at the end of the window.
 4. A `v1.0.0` git tag is cut once the window closes stable; the corresponding GitHub Release is the first non-pre tagged release.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Wave 1: pre-flight checks (verify open todos resolved, all tests green, binary smoke test, DOGFOOD.md template)
+- [ ] 07-02-PLAN.md — Wave 2: install MCPB into Claude Desktop, verify both tools visible and callable (human checkpoint)
+- [ ] 07-03-PLAN.md — Wave 3: validate ≥7-day dogfood window, confirm P0 tracker clean, author sign-off (human checkpoint)
+- [ ] 07-04-PLAN.md — Wave 4: write CHANGELOG.md, push v1.0.0 tag, verify release pipeline on GitHub Actions (human checkpoint)
 
 ---
 
@@ -209,19 +239,21 @@ All 40 v1 requirements mapped to exactly one phase. No orphans, no duplicates.
 | 3 | LAT-02, REG-02, REG-03, REG-04, REG-05 | 5 |
 | 4 | VAL-03, VAL-04, UX-01 | 3 |
 | 5 | DIST-01, DIST-02, DIST-03, DIST-04 | 4 |
-| 6 | VALD-01, VALD-02 | 2 |
+| 6 | *(internal quality gate — no v1 requirements)* | 0 |
+| 7 | VALD-01, VALD-02 | 2 |
 | **Total** | | **41** |
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & MCP Scaffolding | 0/5 | Planned | - |
-| 2. NPM Adapter & End-to-End Spine | 0/? | Not started | - |
-| 3. Remaining Registry Adapters | 0/? | Not started | - |
-| 4. Alternatives & Response-Shape Hardening | 0/? | Not started | - |
-| 5. Distribution | 0/? | Not started | - |
-| 6. Dogfooding & v1.0.0 | 0/? | Not started | - |
+| 1. Foundation & MCP Scaffolding | 5/5 | Complete | 2026-05-12 |
+| 2. NPM Adapter & End-to-End Spine | 5/5 | Complete | 2026-05-13 |
+| 3. Remaining Registry Adapters | 5/5 | Complete | 2026-05-15 |
+| 4. Alternatives & Response-Shape Hardening | 3/3 | Complete | 2026-05-19 |
+| 5. Distribution | 2/2 | Complete | 2026-05-19 |
+| 6. Code Review & Cleanup | 0/? | Not started | - |
+| 7. Dogfooding & v1.0.0 | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-05-12*

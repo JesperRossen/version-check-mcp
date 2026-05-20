@@ -24,14 +24,14 @@ progress:
 
 ## Current Position
 
-Phase: 05 (distribution) — COMPLETE
-Plan: 2 of 2 (COMPLETE)
+Phase: 06 (code-review-cleanup) — IN PROGRESS
+Plan: 1 of 2 (COMPLETE)
 
 - **Milestone:** v1
-- **Phase:** 6 (planned — 2 plans, ready to execute)
-- **Plan:** Not started
-- **Status:** Ready to execute
-- **Progress:** [███████░░░] 71%
+- **Phase:** 6 (executing — 2 plans)
+- **Plan:** 1 complete, 1 remaining
+- **Status:** Executing
+- **Progress:** [████████░░] 75%
 
 ## Performance Metrics
 
@@ -79,8 +79,8 @@ None.
 
 ## Session Continuity
 
-- **Last action:** Phase 05 complete — GoReleaser config (5 targets, CGO=0, SHA256), tzdata embed, release.yml (tag-triggered GoReleaser+MCPB), README install+MCPB sections
-- **Next action:** Plan Phase 6 with `/gsd-plan-phase 6`
+- **Last action:** Phase 06 Plan 01 complete — npm adapter migrated to shared httperr + filter; 4 private files deleted; all STATE.md open todos confirmed resolved
+- **Next action:** Execute Phase 06 Plan 02
 
 ### Roadmap Evolution
 
