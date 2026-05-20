@@ -6,6 +6,8 @@ import (
 
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
 	"github.com/JesperRossen/version-check-mcp/internal/errs"
+	"github.com/JesperRossen/version-check-mcp/internal/filter"
+	"github.com/JesperRossen/version-check-mcp/internal/httperr"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
 )
 
@@ -44,7 +46,7 @@ func (a *Adapter) packumentFor(ctx context.Context, pkg string, incPre bool) (*P
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			return nil, mapHTTPStatus(resp, pkg)
+			return nil, httperr.MapHTTPStatus(resp, pkg, "npm")
 		}
 		p, err := parsePackument(resp.Body)
 		if err != nil {
@@ -97,7 +99,8 @@ func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, mi
 	for k := range p.Versions {
 		keys = append(keys, k)
 	}
-	highest, ok := filterAndPickHighest(keys, incPre, major, minor)
+	// vPrefixed=false: npm versions are unprefixed (no "v" prefix on the wire).
+	highest, ok := filter.FilterAndPickHighest(keys, false, incPre, major, minor)
 	if !ok {
 		return registry.LatestResult{}, errs.NotFound(
 			"no version matches filter",

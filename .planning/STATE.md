@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0.0
 milestone_name: "**Goal**: The author uses the released binary daily through Claude Desktop, validates the wedge against real version-hallucination workflows, and tags v1.0.0 once the dogfood window is stable."
 status: executing
-last_updated: "2026-05-19T16:17:56.729Z"
+last_updated: "2026-05-19T00:00:00.000Z"
 progress:
   total_phases: 6
-  completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
-  percent: 67
+  completed_phases: 5
+  total_plans: 20
+  completed_plans: 20
+  percent: 83
 ---
 
 # State: Version Check MCP
@@ -24,14 +24,14 @@ progress:
 
 ## Current Position
 
-Phase: 04 (alternatives-response-shape-hardening) — COMPLETE
-Plan: 3 of 3 (COMPLETE)
+Phase: 05 (distribution) — COMPLETE
+Plan: 2 of 2 (COMPLETE)
 
 - **Milestone:** v1
-- **Phase:** 5 (not yet planned)
+- **Phase:** 6 (not yet planned)
 - **Plan:** Not started
-- **Status:** Ready to execute
-- **Progress:** [░░░░░░░░░░] 0%
+- **Status:** Ready to plan
+- **Progress:** [████████░░] 83%
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Plan: 3 of 3 (COMPLETE)
 | Cold start | <20ms | not measured |
 | Direct dependencies | 4 | 0 (no code yet) |
 | v1 requirement coverage | 40/40 | 40/40 in roadmap, 0/40 implemented |
-| Phases complete | 6 | 4 |
+| Phases complete | 6 | 5 |
 
 ## Accumulated Context
 
@@ -79,8 +79,8 @@ None.
 
 ## Session Continuity
 
-- **Last action:** Phase 05 context gathered — discuss complete, 4 decisions locked (release trigger, pre-release tagging, MCPB manifest, README scope)
-- **Next action:** Plan Phase 5 (Distribution) with `/gsd-plan-phase 5`
+- **Last action:** Phase 05 complete — GoReleaser config (5 targets, CGO=0, SHA256), tzdata embed, release.yml (tag-triggered GoReleaser+MCPB), README install+MCPB sections
+- **Next action:** Plan Phase 6 with `/gsd-plan-phase 6`
 - **Files of record:**
   - `.planning/PROJECT.md`
   - `.planning/REQUIREMENTS.md`
