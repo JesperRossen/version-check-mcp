@@ -8,6 +8,10 @@
       ],
       "cwd": "/Users/jfro/workspace/fritid/version-check-mcp",
       "type": "stdio"
+    },
+    "version-check-mcp": {
+      "command": "/Users/jfro/bin/version-check-mcp",
+      "type": "stdio"
     }
   }
 }
