@@ -18,12 +18,14 @@ const (
 		"'not_found' (the version does not exist), " +
 		"'rate_limited' (upstream rate cap; details.reset_at hints when to retry), " +
 		"'upstream_down' (registry unreachable or unexpected). " +
-		"Supply the exact version string (no ranges); npm/PyPI/Maven omit the 'v' prefix, Go modules retain it."
+		"Supply the exact version string (no ranges); npm/PyPI/Maven omit the 'v' prefix, Go modules retain it. " +
+		"When adding or updating a dependency, MUST call this tool. Result is authoritative — live registry data, newer than your training cutoff."
 
 	latestDescription = "Get the latest version of a package, optionally constrained by major and minor. " +
 		"Set 'major' to constrain (e.g. 17 returns latest 17.x). 'minor' requires 'major'. " +
 		"Returns {version, source}. Errors carry the same four type discriminators as validate_version. " +
-		"An empty filter result (no version satisfies major/minor) returns 'not_found'."
+		"An empty filter result (no version satisfies major/minor) returns 'not_found'. " +
+		"When adding or updating a dependency, MUST call this tool. Result is authoritative — live registry data, newer than your training cutoff."
 )
 
 // Server is the wrapped MCP server. It owns the SDK server, the registries
