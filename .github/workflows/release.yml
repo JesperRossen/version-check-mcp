@@ -51,37 +51,57 @@ jobs:
           # Create the bundle staging directory
           mkdir -p mcpb-staging/server
 
-          # Copy all platform binaries from GoReleaser dist/
-          for f in dist/version-check-mcp_*_darwin_amd64*/version-check-mcp \
-                   dist/version-check-mcp_*_darwin_arm64*/version-check-mcp \
-                   dist/version-check-mcp_*_linux_amd64*/version-check-mcp \
-                   dist/version-check-mcp_*_linux_arm64*/version-check-mcp \
-                   dist/version-check-mcp_*_windows_amd64*/version-check-mcp.exe; do
-            [ -f "$f" ] && cp "$f" mcpb-staging/server/ || true
-          done
+          # Copy platform-specific binaries with distinct names so they don't overwrite
+          # each other. darwin: arm64 (Apple Silicon, most Claude Desktop users).
+          # linux: amd64 (most common server/CI arch). win32: amd64.
+          DARWIN_BIN=$(find dist -name "version-check-mcp" -path "*/darwin_arm64*" | head -1)
+          LINUX_BIN=$(find dist -name "version-check-mcp" -path "*/linux_amd64*" | head -1)
+          WINDOWS_BIN=$(find dist -name "version-check-mcp.exe" -path "*/windows_amd64*" | head -1)
+          cp "$DARWIN_BIN"  mcpb-staging/server/version-check-mcp-darwin
+          cp "$LINUX_BIN"   mcpb-staging/server/version-check-mcp-linux
+          cp "$WINDOWS_BIN" mcpb-staging/server/version-check-mcp-windows.exe
 
-          # Extract version (strip "v" prefix) before heredoc to allow variable expansion
+          # Extract version (strip "v" prefix) before the heredoc.
+          # \${__dirname} stays literal in the JSON: it is a runtime substitution variable
+          # that the MCPB host application replaces with the extension install directory.
           VERSION="${GITHUB_TAG#v}"
 
-          # Write manifest.json per locked decisions D-MCPB-01..04
+          # Write manifest.json per the MCPB 0.3 spec (anthropics/mcpb MANIFEST.md).
           cat > mcpb-staging/manifest.json <<EOF
           {
             "manifest_version": "0.3",
             "name": "version-check-mcp",
-            "display_name": "version-check-mcp",
-            "description": "Resolves exact package versions from NPM, PyPI, Go Modules, GitHub Actions, and Maven.",
+            "display_name": "Version Check MCP",
             "version": "${VERSION}",
-            "schema_version": "1.0",
-            "server": {
-              "type": "stdio",
-              "command": "version-check-mcp"
+            "description": "Resolves exact package versions from NPM, PyPI, Go Modules, GitHub Actions, and Maven. Stops AI agents from hallucinating version strings.",
+            "author": {
+              "name": "Jesper Rossen"
             },
-            "default_config": {
-              "mcpServers": {
-                "version-check-mcp": {
-                  "command": "version-check-mcp"
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/JesperRossen/version-check-mcp.git"
+            },
+            "server": {
+              "type": "binary",
+              "entry_point": "server/version-check-mcp-linux",
+              "mcp_config": {
+                "command": "\${__dirname}/server/version-check-mcp-linux",
+                "args": [],
+                "env": {},
+                "platform_overrides": {
+                  "darwin": {
+                    "command": "\${__dirname}/server/version-check-mcp-darwin"
+                  },
+                  "win32": {
+                    "command": "\${__dirname}/server/version-check-mcp-windows.exe"
+                  }
                 }
               }
+            },
+            "tools_generated": true,
+            "license": "MIT",
+            "compatibility": {
+              "platforms": ["darwin", "win32", "linux"]
             }
           }
           EOF
