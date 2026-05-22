@@ -220,14 +220,28 @@ Plans:
 5. No P0 bugs (stdout corruption, wrong-by-default latest-stable, scoped-package failure, `+incompatible` mishandling, Maven group-path bug) are open at the end of the window.
 6. A `v1.0.0` git tag is cut once the window closes stable; the corresponding GitHub Release is the first non-pre tagged release.
 
-**Plans**: 5 plans (estimated)
+**Plans**: 5 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Wave 1: pre-flight checks (verify open todos resolved, all tests green, binary smoke test, DOGFOOD.md template)
-- [ ] 07-02-PLAN.md — Wave 2: install MCPB into Claude Desktop, verify both tools visible and callable (human checkpoint)
-- [ ] 07-03-PLAN.md — Wave 2: write multi-agent setup docs (Claude Code CLI, OpenCode, Codex, Gemini CLI stubs) and update README
-- [ ] 07-04-PLAN.md — Wave 3: validate ≥7-day dogfood window across agents, confirm P0 tracker clean, author sign-off (human checkpoint)
-- [ ] 07-05-PLAN.md — Wave 4: write CHANGELOG.md, push v1.0.0 tag, verify release pipeline on GitHub Actions (human checkpoint)
+**Wave 1**
+
+- [x] 07-01-PLAN.md — Wave 1: pre-flight checks (confirm Phase 6 deferred fixes applied, all tests green, binary smoke test, DOGFOOD.md template)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 07-02-PLAN.md — Wave 2: write multi-agent setup docs (Claude Desktop, Claude Code CLI, OpenCode, Codex CLI, Gemini CLI) and update README with GITHUB_TOKEN guidance
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+  - [x] 07-03-PLAN.md — Wave 3: wire binary into Claude Code CLI via .mcp.json, verify both tools callable (human checkpoint)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 07-04-PLAN.md — Wave 4: complete ≥7-day dogfood window, P0 tracker clean, author sign-off (human checkpoint)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 07-05-PLAN.md — Wave 5: write CHANGELOG.md, push v1.0.0 tag, verify release pipeline (human checkpoint)
 
 ---
 
@@ -256,7 +270,7 @@ All 40 v1 requirements mapped to exactly one phase. No orphans, no duplicates.
 | 4. Alternatives & Response-Shape Hardening | 3/3 | Complete | 2026-05-19 |
 | 5. Distribution | 2/2 | Complete | 2026-05-19 |
 | 6. Code Review & Cleanup | 0/? | Not started | - |
-| 7. Dogfooding, Multi-Agent Setup & v1.0.0 | 0/5 | Not started | - |
+| 7. Dogfooding, Multi-Agent Setup & v1.0.0 | 3/5 | In Progress | - |
 
 ---
 *Roadmap created: 2026-05-12*
