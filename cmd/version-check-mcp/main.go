@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -54,9 +55,15 @@ func userAgent() string {
 }
 
 func main() {
+	versionFlag := flag.Bool("version", false, "print version and exit")
 	cacheTTL := flag.Duration("cache-ttl", 15*time.Minute, "TTL for cached registry responses")
 	verbose := flag.Bool("verbose", false, "enable debug-level logging")
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(version.Version)
+		os.Exit(0)
+	}
 
 	level := slog.LevelInfo
 	if *verbose {

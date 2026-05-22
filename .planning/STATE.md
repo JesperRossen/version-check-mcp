@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0.0
 milestone_name: "**Goal**: The author uses the released binary daily through Claude Desktop, validates the wedge against real version-hallucination workflows, and tags v1.0.0 once the dogfood window is stable."
 status: executing
-last_updated: "2026-05-19T00:00:00.000Z"
+last_updated: "2026-05-21T04:04:59.341Z"
 progress:
-  total_phases: 7
-  completed_phases: 5
-  total_plans: 20
-  completed_plans: 20
-  percent: 71
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 5
+  completed_plans: 0
+  percent: 0
 ---
 
 # State: Version Check MCP
@@ -20,17 +20,17 @@ progress:
 
 **Core Value:** When an AI agent asks "does this package version exist?", the server returns a correct answer in under 20ms with useful alternatives if it doesn't.
 
-**Current Focus:** Phase 5 — distribution
+**Current Focus:** Phase 07 — dogfooding-v1-0-0
 
 ## Current Position
 
-Phase: 06 (code-review-cleanup) — COMPLETE
-Plan: 2 of 2 (COMPLETE)
+Phase: 07 (dogfooding-v1-0-0) — EXECUTING
+Plan: 1 of 5
 
 - **Milestone:** v1
 - **Phase:** 6 (complete — 2 plans)
 - **Plan:** 2 complete, 0 remaining
-- **Status:** Executing (Phase 7 next)
+- **Status:** Executing Phase 07
 - **Progress:** [█████████░] 85%
 
 ## Performance Metrics
@@ -83,14 +83,17 @@ None.
 **Scope:** All 5 adapters + internal/filter/nearest.go
 
 **Findings applied:**
+
 - `nearest.go NearestVersions`: pre-sized `candidates` slice with `make([]string, 0, len(versions))` (was unbounded `var candidates []string`)
 - `nearest.go NearestVersions`: pre-sized `byDist` slice with `make([]ranked, 0, len(candidates))` (was unbounded `var byDist []ranked`)
 
 **Findings documented (out-of-scope for v1):**
+
 - PyPI `Validate()` iterates `Releases` map with normalized key comparison (O(n) scan) — acceptable for typical package sizes (<1000 versions); a lookup map could speed this up but adds complexity not warranted at this scale
 - `nearest.go` `parseParts` is called 2x per candidate in same-minor/same-major tiers (once for target, once per candidate) — memoizing target parse could help but n < 1000 in practice
 
 **Dependency audit:**
+
 - go-sdk: Required (MCP protocol — removing requires hand-rolling JSON-RPC + MCP spec)
 - golang-lru/v2: Required (bounded LRU+TTL cache, CACHE-01..04 — stdlib alternatives require hand-rolling eviction)
 - x/sync: Required (singleflight in cache.GetOrLoad — confirmed by `internal/cache/cache.go:22`)
@@ -99,8 +102,8 @@ None.
 
 ## Session Continuity
 
-- **Last action:** Phase 06 complete — code review PASS_WITH_NOTES (2 warnings noted in 06-REVIEW.md); all tests pass; ROADMAP.md updated
-- **Next action:** Phase 07 (Dogfooding & v1.0.0)
+- **Last action:** Phase 07 Plan 03 complete — live binary verification passed in Claude Code CLI; both tools callable and return real registry data; DOGFOOD.md day 1 session recorded
+- **Next action:** Phase 07 Plan 04 (dogfood window >=7 days, P0 tracker clean, author sign-off)
 
 ### Phase 06 Code Review Notes (PASS_WITH_NOTES)
 
@@ -117,6 +120,12 @@ See `.planning/phases/06-code-review-cleanup/06-REVIEW.md` for full findings.
   - `.planning/REQUIREMENTS.md`
   - `.planning/ROADMAP.md`
   - `.planning/research/` (STACK, FEATURES, ARCHITECTURE, PITFALLS, SUMMARY)
+
+## Quick Tasks Completed
+
+| Date | Slug | Summary |
+|------|------|---------|
+| 2026-05-22 | homebrew-mise-distribution | Homebrew tap + mise/ubi install methods; `--version` flag; README restructured |
 
 ---
 *State initialized: 2026-05-12*
