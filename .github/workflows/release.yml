@@ -88,7 +88,7 @@ jobs:
 
           # Pack the bundle
           cd mcpb-staging
-          mcpb pack --output ../version-check-mcp.mcpb .
+          mcpb pack . ../version-check-mcp.mcpb
           cd ..
 
           # Attach to the existing GitHub Release (created by GoReleaser)
