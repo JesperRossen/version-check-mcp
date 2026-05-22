@@ -241,12 +241,20 @@ func TestStdio_NPM_Validate_Miss(t *testing.T) {
 		"pkg":     "react",
 		"version": "99.0.0",
 	})
-	errType, sc := expectError(t, resp)
-	if errType != "not_found" {
-		t.Errorf("error type = %q, want %q", errType, "not_found")
+	// D-MISS-01: a version miss returns a success-shaped response with exists=false
+	// and an alternatives list, NOT an error envelope.
+	sc := expectSuccess(t, resp)
+	if exists, _ := sc["exists"].(bool); exists {
+		t.Errorf("exists = %v, want false", exists)
 	}
 	if got := sc["requested_version"]; got != "99.0.0" {
 		t.Errorf("requested_version = %v, want %q", got, "99.0.0")
+	}
+	if _, ok := sc["alternatives"]; !ok {
+		t.Errorf("missing 'alternatives' key in miss response")
+	}
+	if _, ok := sc["latest_stable"]; !ok {
+		t.Errorf("missing 'latest_stable' key in miss response")
 	}
 }
 

@@ -36,20 +36,18 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
-brews:
+homebrew_casks:
   - name: version-check-mcp
     repository:
       owner: JesperRossen
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
+    directory: Casks
     homepage: "https://github.com/JesperRossen/version-check-mcp"
     description: "Lightweight MCP server giving AI coding agents a single source of truth for software package versions"
-    license: "MIT"
-    install: |
-      bin.install "version-check-mcp"
-    test: |
-      assert_match version.to_s, shell_output("#{bin}/version-check-mcp --version")
+    binaries:
+      - version-check-mcp
+    skip_upload: auto
 
 release:
   github:

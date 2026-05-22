@@ -2,6 +2,14 @@
 
 All notable changes to version-check-mcp are documented here.
 
+## [0.0.2] - 2026-05-23
+
+### Fixed
+- GoReleaser: replace deprecated `brews` key with `homebrew_casks` (GoReleaser v2 removed the old key)
+- GoReleaser: expose `HOMEBREW_TAP_GITHUB_TOKEN` to the release step env so the tap is actually updated
+- README: update Homebrew install to `brew install --cask` to match the cask format GoReleaser generates
+- Integration test `TestStdio_NPM_Validate_Miss`: align with design decision D-MISS-01 (version misses return a success-shaped response with `exists=false` and alternatives, not an error envelope)
+
 ## [0.0.1] - 2026-05-22
 
 ### Added

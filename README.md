@@ -14,7 +14,7 @@ all platform binaries into a single portable archive.
 ### Homebrew (macOS / Linux)
 
 ```sh
-brew install JesperRossen/tap/version-check-mcp
+brew install --cask JesperRossen/tap/version-check-mcp
 ```
 
 This puts `version-check-mcp` on your PATH. Use `version-check-mcp` directly in
