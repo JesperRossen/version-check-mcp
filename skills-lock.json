@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "build-mcpb": {
+      "source": "anthropics/claude-plugins-official",
+      "sourceType": "github",
+      "skillPath": "plugins/mcp-server-dev/skills/build-mcpb/SKILL.md",
+      "computedHash": "97eaeeffb27721ffe5fc4ada6e3c15cffbf4121616603cd1b5f3f5da41102a7b"
+    },
     "golang-patterns": {
       "source": "affaan-m/everything-claude-code",
       "sourceType": "github",

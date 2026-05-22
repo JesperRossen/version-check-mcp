@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
+  "manifest_version": "0.4",
+  "name": "version-check-mcp",
+  "display_name": "Version Check MCP",
+  "version": "__VERSION__",
+  "description": "Resolves exact package versions from NPM, PyPI, Go Modules, GitHub Actions, and Maven. Stops AI agents from hallucinating version strings.",
+  "author": {
+    "name": "Jesper Rossen"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JesperRossen/version-check-mcp.git"
+  },
+  "server": {
+    "type": "binary",
+    "entry_point": "server/version-check-mcp-linux",
+    "mcp_config": {
+      "command": "${__dirname}/server/version-check-mcp-linux",
+      "args": [],
+      "env": {},
+      "platform_overrides": {
+        "darwin": {
+          "command": "${__dirname}/server/version-check-mcp-darwin"
+        },
+        "win32": {
+          "command": "${__dirname}/server/version-check-mcp-windows.exe"
+        }
+      }
+    }
+  },
+  "tools_generated": true,
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"]
+  }
+}

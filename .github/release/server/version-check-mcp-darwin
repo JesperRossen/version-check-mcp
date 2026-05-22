@@ -1,0 +1,6 @@
+#!/bin/sh
+DIR="$(cd "$(dirname "$0")" && pwd)"
+case "$(uname -m)" in
+  arm64|aarch64) exec "$DIR/version-check-mcp-darwin-arm64" "$@" ;;
+  *)             exec "$DIR/version-check-mcp-darwin-amd64" "$@" ;;
+esac

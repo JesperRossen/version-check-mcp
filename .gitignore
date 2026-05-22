@@ -35,5 +35,6 @@ go.work.sum
 # Build artifacts
 tmp/
 /version-check-mcp
+dist/
 # Added by code-review-graph
 .code-review-graph/
