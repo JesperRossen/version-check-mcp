@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -285,7 +286,10 @@ func decodeArgs(req *sdkmcp.CallToolRequest, target any) error {
 	if len(raw) == 0 || string(raw) == "null" {
 		return nil
 	}
-	return json.Unmarshal(raw, target)
+
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	return dec.Decode(target)
 }
 
 // successResult builds a CallToolResult for the happy path with the
