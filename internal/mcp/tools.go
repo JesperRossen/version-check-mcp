@@ -46,25 +46,26 @@ type LatestInput struct {
 func validateInputSchema() json.RawMessage {
 	return mustSchema(map[string]any{
 		"type":                 "object",
+		"description":          "Validate one exact version for a package in the selected ecosystem. Required fields: manager, pkg, version. Optional include_prereleases defaults to false.",
 		"additionalProperties": false,
 		"required":             []string{"manager", "pkg", "version"},
 		"properties": map[string]any{
 			"manager": map[string]any{
 				"type":        "string",
-				"description": "package manager: one of npm, pypi, gomod, gh, maven",
+				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central).",
 				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
 			},
 			"pkg": map[string]any{
 				"type":        "string",
-				"description": "package identifier in ecosystem-native form (e.g. 'react', 'requests', 'github.com/foo/bar', 'actions/checkout', 'org.springframework:spring-core')",
+				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core.",
 			},
 			"version": map[string]any{
 				"type":        "string",
-				"description": "exact version string (no ranges); ecosystem-native form (Go retains 'v' prefix, NPM does not)",
+				"description": "Exact version string to validate. Do not pass ranges like ^1.2, ~1.2, >=1.0, or x wildcards.",
 			},
 			"include_prereleases": map[string]any{
 				"type":        "boolean",
-				"description": "if true, prereleases considered valid; default false",
+				"description": "If true, prerelease versions (alpha, beta, rc, etc.) are eligible. If omitted, defaults to false.",
 			},
 		},
 	})
@@ -74,29 +75,30 @@ func validateInputSchema() json.RawMessage {
 func latestInputSchema() json.RawMessage {
 	return mustSchema(map[string]any{
 		"type":                 "object",
+		"description":          "Resolve newest version for a package, optionally constrained by major/minor. Required fields: manager, pkg.",
 		"additionalProperties": false,
 		"required":             []string{"manager", "pkg"},
 		"properties": map[string]any{
 			"manager": map[string]any{
 				"type":        "string",
-				"description": "package manager: one of npm, pypi, gomod, gh, maven",
+				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central).",
 				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
 			},
 			"pkg": map[string]any{
 				"type":        "string",
-				"description": "package identifier in ecosystem-native form",
+				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core.",
 			},
 			"include_prereleases": map[string]any{
 				"type":        "boolean",
-				"description": "if true, prereleases are considered; default false",
+				"description": "If true, prerelease versions (alpha, beta, rc, etc.) are eligible. If omitted, defaults to false.",
 			},
 			"major": map[string]any{
 				"type":        "integer",
-				"description": "optional integer constraining the result to that major version (e.g. 17 returns latest 17.x)",
+				"description": "Optional non-negative major filter. Example: 17 returns the newest 17.x release.",
 			},
 			"minor": map[string]any{
 				"type":        "integer",
-				"description": "optional integer constraining the result to that minor (requires major); e.g. major=17,minor=0 returns latest 17.0.x",
+				"description": "Optional non-negative minor filter. Requires major. Example: major=17, minor=0 returns newest 17.0.x.",
 			},
 		},
 	})
