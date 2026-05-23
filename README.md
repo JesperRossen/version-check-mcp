@@ -1,6 +1,14 @@
 # version-check-mcp
 A Lightweight Version Validator for AI Coding Agents
 
+## Supported Package Ecosystems
+
+- **npm** — `validate_version` and `get_latest_version` for any npm package, including scoped packages (`@scope/name`)
+- **PyPI** — Python packages from the Python Package Index
+- **Go Modules** — Go module versions via `proxy.golang.org`
+- **GitHub Actions** — Any public GitHub repo used as an action, by tag
+- **Maven Central** — Java packages by `groupId:artifactId`
+
 ## Installation
 
 ### Claude Desktop: one-click MCPB bundle (recommended)
@@ -56,7 +64,20 @@ PATH (Homebrew or mise install). If you downloaded the binary manually, replace
 xattr -d com.apple.quarantine /path/to/version-check-mcp
 ```
 
+| Agent | Config file | Install method |
+|-------|-------------|----------------|
+| [Claude Desktop](#claude-desktop) | `claude_desktop_config.json` | MCPB bundle (recommended) |
+| [Claude Code CLI](#claude-code-cli) | `.mcp.json` | PATH (Homebrew / mise) |
+| [OpenCode](#opencode) | `opencode.json` | PATH (Homebrew / mise) |
+| [Cursor IDE](#cursor-ide) | `.cursor/mcp.json` | PATH (Homebrew / mise) |
+| [Windsurf](#windsurf) | `~/.codeium/windsurf/mcp_config.json` | PATH (Homebrew / mise) |
+| [Codex CLI](#codex-cli) | `~/.codex/config.toml` | PATH (Homebrew / mise) |
+| [Gemini CLI](#gemini-cli) | `~/.gemini/settings.json` | PATH (Homebrew / mise) |
+
 ### Claude Desktop
+
+<details>
+<summary>Show configuration</summary>
 
 Install via MCPB bundle (one-click, recommended) - see the [installation section](#claude-desktop-one-click-mcpb-bundle-recommended) above.
 
@@ -84,9 +105,14 @@ Replace `version-check-mcp` with the full path if you installed the binary manua
 
 **Verification status:** Verified.
 
+</details>
+
 ---
 
 ### Claude Code CLI
+
+<details>
+<summary>Show configuration</summary>
 
 Project-scoped config at `.mcp.json` in your project root:
 
@@ -122,9 +148,14 @@ Global alternative: `~/.claude/claude.json` (same schema).
 
 **Verification status:** Verified (confirmed from `.mcp.json` in this repo).
 
+</details>
+
 ---
 
 ### OpenCode
+
+<details>
+<summary>Show configuration</summary>
 
 Config at `opencode.json` or `opencode.jsonc` at your project root, or
 `~/.config/opencode/opencode.json` globally:
@@ -155,9 +186,101 @@ Config at `opencode.json` or `opencode.jsonc` at your project root, or
 
 **Verification status:** Verified (confirmed from author's `~/.config/opencode/opencode.jsonc`).
 
+</details>
+
+---
+
+### Cursor IDE
+
+<details>
+<summary>Show configuration</summary>
+
+> **Note:** Based on official Cursor docs - not personally tested by the author.
+
+Config at `.cursor/mcp.json` in your project root, or `~/.cursor/mcp.json` globally:
+
+```json
+{
+  "mcpServers": {
+    "version-check-mcp": {
+      "command": "version-check-mcp"
+    }
+  }
+}
+```
+
+Replace `version-check-mcp` with the full path if the binary is not on your PATH.
+
+> **Optional:** Increase GitHub rate limit - add an `env` field:
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "version-check-mcp": {
+>       "command": "version-check-mcp",
+>       "env": { "GITHUB_TOKEN": "ghp_..." }
+>     }
+>   }
+> }
+> ```
+>
+> **Warning:** Do not commit token values to `.mcp.json`, `opencode.json`, or any
+> version-controlled config file. Use a secrets manager or environment-level injection instead.
+
+**Verification status:** Based on official Cursor docs - not personally tested by the author.
+
+</details>
+
+---
+
+### Windsurf
+
+<details>
+<summary>Show configuration</summary>
+
+> **Note:** Based on official Windsurf docs - not personally tested by the author.
+
+Config at `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "version-check-mcp": {
+      "command": "version-check-mcp"
+    }
+  }
+}
+```
+
+Replace `version-check-mcp` with the full path if the binary is not on your PATH.
+
+> **Optional:** Increase GitHub rate limit - add an `env` field. Windsurf supports
+> `${env:VAR}` interpolation to avoid hardcoding secrets:
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "version-check-mcp": {
+>       "command": "version-check-mcp",
+>       "env": { "GITHUB_TOKEN": "${env:GITHUB_TOKEN}" }
+>     }
+>   }
+> }
+> ```
+>
+> **Warning:** Do not commit token values to `.mcp.json`, `opencode.json`, or any
+> version-controlled config file. Use a secrets manager or environment-level injection instead.
+
+**Verification status:** Based on official Windsurf docs - not personally tested by the author.
+
+</details>
+
 ---
 
 ### Codex CLI
+
+<details>
+<summary>Show configuration</summary>
 
 > **Note:** Based on official Codex CLI docs - not personally tested by the author.
 
@@ -186,9 +309,14 @@ codex mcp add version-check-mcp -- version-check-mcp
 
 **Verification status:** Based on official Codex CLI docs - not personally tested by the author.
 
+</details>
+
 ---
 
 ### Gemini CLI
+
+<details>
+<summary>Show configuration</summary>
 
 > **Note:** Based on official Gemini CLI docs - not personally tested by the author.
 
@@ -221,3 +349,5 @@ gemini mcp add version-check-mcp version-check-mcp
 > version-controlled config file. Use a secrets manager or environment-level injection instead.
 
 **Verification status:** Based on official Gemini CLI docs - not personally tested by the author.
+
+</details>
