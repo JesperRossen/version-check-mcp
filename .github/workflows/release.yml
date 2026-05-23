@@ -9,9 +9,31 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: true
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Unit tests
+        run: go test ./... -count=1 -race -timeout 5m
+
+      - name: Integration tests (fixture-replay)
+        run: go test -tags testfixtures ./test/integration/... -count=1 -timeout 5m
+
   release:
     name: GoReleaser + MCPB
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
         with:

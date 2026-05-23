@@ -44,11 +44,12 @@ func TestSingleflightDedupes(t *testing.T) {
 	var calls atomic.Int64
 	var wg sync.WaitGroup
 	wg.Add(N)
+	loaderCh := make(chan struct{})
 
 	k := cache.Key{Manager: "npm", Pkg: "react", Op: "latest", IncPre: false}
 	loader := func(ctx context.Context) (string, error) {
 		calls.Add(1)
-		time.Sleep(20 * time.Millisecond)
+		<-loaderCh
 		return "1.0.0", nil
 	}
 
@@ -64,6 +65,7 @@ func TestSingleflightDedupes(t *testing.T) {
 			}
 		}()
 	}
+	close(loaderCh)
 	wg.Wait()
 
 	if got := calls.Load(); got != 1 {
@@ -94,21 +96,29 @@ func TestExpires(t *testing.T) {
 		t.Fatalf("first Get: v=%q err=%v", v1, err)
 	}
 
-	time.Sleep(80 * time.Millisecond)
-
 	var calls atomic.Int64
-	v2, err := cache.Get[string](context.Background(), c, k, func(ctx context.Context) (string, error) {
-		calls.Add(1)
-		return "w", nil
-	})
-	if err != nil {
-		t.Fatalf("second Get err = %v", err)
-	}
-	if v2 != "w" {
-		t.Errorf("second Get value = %q, want %q (entry should have expired)", v2, "w")
-	}
-	if calls.Load() != 1 {
-		t.Errorf("loader was called %d times after expiry, want 1", calls.Load())
+	deadline := time.Now().Add(1 * time.Second)
+	for {
+		v2, err := cache.Get[string](context.Background(), c, k, func(ctx context.Context) (string, error) {
+			calls.Add(1)
+			return "w", nil
+		})
+		if err != nil {
+			t.Fatalf("Get err = %v", err)
+		}
+		if v2 == "w" {
+			if calls.Load() != 1 {
+				t.Errorf("loader was called %d times after expiry, want 1", calls.Load())
+			}
+			return
+		}
+		if v2 != "v" {
+			t.Fatalf("Get value = %q, want %q or %q", v2, "v", "w")
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("cache entry did not expire within timeout")
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 
