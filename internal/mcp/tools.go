@@ -11,7 +11,6 @@ import (
 	"github.com/JesperRossen/version-check-mcp/internal/filter"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
 
-	"github.com/google/jsonschema-go/jsonschema"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -43,14 +42,74 @@ type LatestInput struct {
 	Minor              *int    `json:"minor,omitempty" jsonschema:"optional integer constraining the result to that minor (requires major); e.g. major=17,minor=0 returns latest 17.0.x"`
 }
 
-// schemaFor builds the JSON schema for an input type T using jsonschema-go's
-// reflection. Panics on invalid types — callers should test once at startup.
-func schemaFor[T any]() *jsonschema.Schema {
-	s, err := jsonschema.For[T](nil)
+// validateInputSchema returns a JSON schema object for ValidateInput.
+func validateInputSchema() json.RawMessage {
+	return mustSchema(map[string]any{
+		"type":                 "object",
+		"description":          "Validate one exact version for a package in the selected ecosystem. Required fields: manager, pkg, version. Optional include_prereleases defaults to false.",
+		"additionalProperties": false,
+		"required":             []string{"manager", "pkg", "version"},
+		"properties": map[string]any{
+			"manager": map[string]any{
+				"type":        "string",
+				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central).",
+				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
+			},
+			"pkg": map[string]any{
+				"type":        "string",
+				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core.",
+			},
+			"version": map[string]any{
+				"type":        "string",
+				"description": "Exact version string to validate. Do not pass ranges like ^1.2, ~1.2, >=1.0, or x wildcards.",
+			},
+			"include_prereleases": map[string]any{
+				"type":        "boolean",
+				"description": "If true, prerelease versions (alpha, beta, rc, etc.) are eligible. If omitted, defaults to false.",
+			},
+		},
+	})
+}
+
+// latestInputSchema returns a JSON schema object for LatestInput.
+func latestInputSchema() json.RawMessage {
+	return mustSchema(map[string]any{
+		"type":                 "object",
+		"description":          "Resolve newest version for a package, optionally constrained by major/minor. Required fields: manager, pkg.",
+		"additionalProperties": false,
+		"required":             []string{"manager", "pkg"},
+		"properties": map[string]any{
+			"manager": map[string]any{
+				"type":        "string",
+				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central).",
+				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
+			},
+			"pkg": map[string]any{
+				"type":        "string",
+				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core.",
+			},
+			"include_prereleases": map[string]any{
+				"type":        "boolean",
+				"description": "If true, prerelease versions (alpha, beta, rc, etc.) are eligible. If omitted, defaults to false.",
+			},
+			"major": map[string]any{
+				"type":        "integer",
+				"description": "Optional non-negative major filter. Example: 17 returns the newest 17.x release.",
+			},
+			"minor": map[string]any{
+				"type":        "integer",
+				"description": "Optional non-negative minor filter. Requires major. Example: major=17, minor=0 returns newest 17.0.x.",
+			},
+		},
+	})
+}
+
+func mustSchema(schema map[string]any) json.RawMessage {
+	raw, err := json.Marshal(schema)
 	if err != nil {
-		panic(fmt.Sprintf("schemaFor: %v", err))
+		panic(fmt.Sprintf("marshal tool schema: %v", err))
 	}
-	return s
+	return raw
 }
 
 // isRangeLike returns true for any version string that looks like a range
@@ -83,6 +142,12 @@ func (s *Server) validateRawHandler(ctx context.Context, req *sdkmcp.CallToolReq
 			errs.InvalidInput("malformed arguments", "error", err.Error()),
 			"",
 		), nil
+	}
+
+	in.Pkg = strings.TrimSpace(in.Pkg)
+	in.Version = strings.TrimSpace(in.Version)
+	if err := validateValidateInput(in); err != nil {
+		return toCallToolResult(err, in.Version), nil
 	}
 
 	if isRangeLike(in.Version) {
@@ -154,11 +219,9 @@ func (s *Server) latestRawHandler(ctx context.Context, req *sdkmcp.CallToolReque
 		), nil
 	}
 
-	if in.Minor != nil && in.Major == nil {
-		return toCallToolResult(
-			errs.InvalidInput("minor filter requires major", "minor", *in.Minor),
-			"",
-		), nil
+	in.Pkg = strings.TrimSpace(in.Pkg)
+	if err := validateLatestInput(in); err != nil {
+		return toCallToolResult(err, ""), nil
 	}
 
 	reg, ok := s.registries[in.Manager]
@@ -178,6 +241,38 @@ func (s *Server) latestRawHandler(ctx context.Context, req *sdkmcp.CallToolReque
 		"version": res.Version,
 		"source":  res.Source,
 	}), nil
+}
+
+func validateValidateInput(in ValidateInput) error {
+	if strings.TrimSpace(string(in.Manager)) == "" {
+		return errs.InvalidInput("manager is required", "manager", "")
+	}
+	if in.Pkg == "" {
+		return errs.InvalidInput("pkg is required", "pkg", "")
+	}
+	if in.Version == "" {
+		return errs.InvalidInput("version is required", "version", "")
+	}
+	return nil
+}
+
+func validateLatestInput(in LatestInput) error {
+	if strings.TrimSpace(string(in.Manager)) == "" {
+		return errs.InvalidInput("manager is required", "manager", "")
+	}
+	if in.Pkg == "" {
+		return errs.InvalidInput("pkg is required", "pkg", "")
+	}
+	if in.Minor != nil && in.Major == nil {
+		return errs.InvalidInput("minor filter requires major", "minor", *in.Minor)
+	}
+	if in.Major != nil && *in.Major < 0 {
+		return errs.InvalidInput("major must be >= 0", "major", *in.Major)
+	}
+	if in.Minor != nil && *in.Minor < 0 {
+		return errs.InvalidInput("minor must be >= 0", "minor", *in.Minor)
+	}
+	return nil
 }
 
 // decodeArgs unmarshals the raw arguments from a CallToolRequest into the
