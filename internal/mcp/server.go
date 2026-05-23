@@ -12,20 +12,28 @@ import (
 )
 
 const (
-	validateDescription = "Check whether a specific package version exists in its registry. " +
-		"Returns {exists, source, requested_version}. " +
-		"Errors carry a type discriminator: 'invalid_input' (range supplied or malformed input), " +
-		"'not_found' (the version does not exist), " +
-		"'rate_limited' (upstream rate cap; details.reset_at hints when to retry), " +
-		"'upstream_down' (registry unreachable or unexpected). " +
-		"Supply the exact version string (no ranges); npm/PyPI/Maven omit the 'v' prefix, Go modules retain it. " +
-		"When adding or updating a dependency, MUST call this tool. Result is authoritative — live registry data, newer than your training cutoff."
+	validateDescription = "Use this tool to verify one exact dependency version before writing it to a manifest. " +
+		"When to use: validating a pinned version (package.json, pyproject.toml, go.mod, pom.xml, action tag). " +
+		"When not to use: finding newest versions, use get_latest_version for that. " +
+		"Required inputs: manager, pkg, version. Optional: include_prereleases (default false). " +
+		"Version must be exact, not a range. " +
+		"Manager enum values: npm, pypi, gomod, gh, maven. " +
+		"Response on hit: {exists:true, source:string, requested_version:string}. " +
+		"Response on miss: {exists:false, requested_version:string, latest_stable:string, alternatives:[{version:string, reason:latest_stable|nearest_semver|latest_in_major}]}. " +
+		"Error envelope: {error:{type:invalid_input|not_found|rate_limited|upstream_down, message:string, details:object}, requested_version?:string}. " +
+		"Version formatting: Go/GitHub tags usually keep 'v' prefix, npm/PyPI/Maven usually do not. " +
+		"Result is authoritative live registry data."
 
-	latestDescription = "Get the latest version of a package, optionally constrained by major and minor. " +
-		"Set 'major' to constrain (e.g. 17 returns latest 17.x). 'minor' requires 'major'. " +
-		"Returns {version, source}. Errors carry the same four type discriminators as validate_version. " +
-		"An empty filter result (no version satisfies major/minor) returns 'not_found'. " +
-		"When adding or updating a dependency, MUST call this tool. Result is authoritative — live registry data, newer than your training cutoff."
+	latestDescription = "Use this tool to look up the newest available version for a package before proposing an upgrade. " +
+		"When to use: selecting a target upgrade version. " +
+		"When not to use: checking whether an already chosen version exists, use validate_version. " +
+		"Required inputs: manager, pkg. Optional: include_prereleases (default false), major, minor. " +
+		"Filter semantics: major=17 means latest 17.x; minor requires major and means latest 17.0.x style within that branch. " +
+		"Manager enum values: npm, pypi, gomod, gh, maven. " +
+		"Success response: {version:string, source:string}. " +
+		"If no version matches filters, returns error.type=not_found. " +
+		"Error envelope: {error:{type:invalid_input|not_found|rate_limited|upstream_down, message:string, details:object}}. " +
+		"Result is authoritative live registry data."
 )
 
 // Server is the wrapped MCP server. It owns the SDK server, the registries

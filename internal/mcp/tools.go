@@ -142,6 +142,12 @@ func (s *Server) validateRawHandler(ctx context.Context, req *sdkmcp.CallToolReq
 		), nil
 	}
 
+	in.Pkg = strings.TrimSpace(in.Pkg)
+	in.Version = strings.TrimSpace(in.Version)
+	if err := validateValidateInput(in); err != nil {
+		return toCallToolResult(err, in.Version), nil
+	}
+
 	if isRangeLike(in.Version) {
 		return toCallToolResult(
 			errs.InvalidInput("version must be exact, not a range", "requested_version", in.Version),
@@ -211,11 +217,9 @@ func (s *Server) latestRawHandler(ctx context.Context, req *sdkmcp.CallToolReque
 		), nil
 	}
 
-	if in.Minor != nil && in.Major == nil {
-		return toCallToolResult(
-			errs.InvalidInput("minor filter requires major", "minor", *in.Minor),
-			"",
-		), nil
+	in.Pkg = strings.TrimSpace(in.Pkg)
+	if err := validateLatestInput(in); err != nil {
+		return toCallToolResult(err, ""), nil
 	}
 
 	reg, ok := s.registries[in.Manager]
@@ -235,6 +239,38 @@ func (s *Server) latestRawHandler(ctx context.Context, req *sdkmcp.CallToolReque
 		"version": res.Version,
 		"source":  res.Source,
 	}), nil
+}
+
+func validateValidateInput(in ValidateInput) error {
+	if strings.TrimSpace(string(in.Manager)) == "" {
+		return errs.InvalidInput("manager is required", "manager", "")
+	}
+	if in.Pkg == "" {
+		return errs.InvalidInput("pkg is required", "pkg", "")
+	}
+	if in.Version == "" {
+		return errs.InvalidInput("version is required", "version", "")
+	}
+	return nil
+}
+
+func validateLatestInput(in LatestInput) error {
+	if strings.TrimSpace(string(in.Manager)) == "" {
+		return errs.InvalidInput("manager is required", "manager", "")
+	}
+	if in.Pkg == "" {
+		return errs.InvalidInput("pkg is required", "pkg", "")
+	}
+	if in.Minor != nil && in.Major == nil {
+		return errs.InvalidInput("minor filter requires major", "minor", *in.Minor)
+	}
+	if in.Major != nil && *in.Major < 0 {
+		return errs.InvalidInput("major must be >= 0", "major", *in.Major)
+	}
+	if in.Minor != nil && *in.Minor < 0 {
+		return errs.InvalidInput("minor must be >= 0", "minor", *in.Minor)
+	}
+	return nil
 }
 
 // decodeArgs unmarshals the raw arguments from a CallToolRequest into the

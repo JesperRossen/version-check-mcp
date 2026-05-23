@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	internalmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
 	"github.com/JesperRossen/version-check-mcp/internal/errs"
+	internalmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/fake"
 
@@ -118,7 +118,7 @@ func TestValidateRejectsRanges(t *testing.T) {
 
 	ranges := []string{"^1.2.3", "~1.2", "1.x", ">= 1.0", "*", ">1.0,<2.0"}
 	for _, v := range ranges {
-		args := map[string]any{"manager": "npm", "package": "react", "version": v}
+		args := map[string]any{"manager": "npm", "pkg": "react", "version": v}
 		res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
 			Name:      "validate_version",
 			Arguments: args,
@@ -140,6 +140,66 @@ func TestValidateRejectsRanges(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsMissingFields(t *testing.T) {
+	t.Run("missing pkg", func(t *testing.T) {
+		f := fake.New("npm")
+		session, done := connectInMemory(t, map[internalmcp.Manager]registry.Registry{
+			internalmcp.ManagerNPM: f,
+		})
+		defer done()
+
+		res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+			Name: "validate_version",
+			Arguments: map[string]any{
+				"manager": "npm",
+				"pkg":     "   ",
+				"version": "1.0.0",
+			},
+		})
+		if err != nil {
+			t.Fatalf("CallTool: %v", err)
+		}
+		if !res.IsError {
+			t.Fatalf("IsError=false, want true")
+		}
+		if got := extractErrorType(t, res); got != "invalid_input" {
+			t.Fatalf("error.type=%q, want invalid_input", got)
+		}
+		if got := f.ValidateCalls.Load(); got != 0 {
+			t.Fatalf("registry Validate called %d times, want 0", got)
+		}
+	})
+
+	t.Run("missing version", func(t *testing.T) {
+		f := fake.New("npm")
+		session, done := connectInMemory(t, map[internalmcp.Manager]registry.Registry{
+			internalmcp.ManagerNPM: f,
+		})
+		defer done()
+
+		res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+			Name: "validate_version",
+			Arguments: map[string]any{
+				"manager": "npm",
+				"pkg":     "react",
+				"version": "\t",
+			},
+		})
+		if err != nil {
+			t.Fatalf("CallTool: %v", err)
+		}
+		if !res.IsError {
+			t.Fatalf("IsError=false, want true")
+		}
+		if got := extractErrorType(t, res); got != "invalid_input" {
+			t.Fatalf("error.type=%q, want invalid_input", got)
+		}
+		if got := f.ValidateCalls.Load(); got != 0 {
+			t.Fatalf("registry Validate called %d times, want 0", got)
+		}
+	})
+}
+
 func TestRequestedVersionEcho(t *testing.T) {
 	f := fake.New("npm")
 	f.ValidateResult = registry.ValidateResult{Exists: true, Source: "npm"}
@@ -151,7 +211,7 @@ func TestRequestedVersionEcho(t *testing.T) {
 	// success path
 	res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
 		Name:      "validate_version",
-		Arguments: map[string]any{"manager": "npm", "package": "react", "version": "18.2.0"},
+		Arguments: map[string]any{"manager": "npm", "pkg": "react", "version": "18.2.0"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool: %v", err)
@@ -163,7 +223,7 @@ func TestRequestedVersionEcho(t *testing.T) {
 	// range rejection path
 	res2, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
 		Name:      "validate_version",
-		Arguments: map[string]any{"manager": "npm", "package": "react", "version": "^1.0.0"},
+		Arguments: map[string]any{"manager": "npm", "pkg": "react", "version": "^1.0.0"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool(range): %v", err)
@@ -194,7 +254,7 @@ func TestErrorEnvelopeShape(t *testing.T) {
 
 			res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
 				Name:      "validate_version",
-				Arguments: map[string]any{"manager": "npm", "package": "react", "version": "1.0.0"},
+				Arguments: map[string]any{"manager": "npm", "pkg": "react", "version": "1.0.0"},
 			})
 			if err != nil {
 				t.Fatalf("CallTool: %v", err)
@@ -207,6 +267,84 @@ func TestErrorEnvelopeShape(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLatestRejectsInvalidFilters(t *testing.T) {
+	f := fake.New("npm")
+	session, done := connectInMemory(t, map[internalmcp.Manager]registry.Registry{
+		internalmcp.ManagerNPM: f,
+	})
+	defer done()
+
+	t.Run("minor without major", func(t *testing.T) {
+		res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+			Name: "get_latest_version",
+			Arguments: map[string]any{
+				"manager": "npm",
+				"pkg":     "react",
+				"minor":   1,
+			},
+		})
+		if err != nil {
+			t.Fatalf("CallTool: %v", err)
+		}
+		if !res.IsError {
+			t.Fatalf("IsError=false, want true")
+		}
+		if got := extractErrorType(t, res); got != "invalid_input" {
+			t.Fatalf("error.type=%q, want invalid_input", got)
+		}
+		if got := f.LatestCalls.Load(); got != 0 {
+			t.Fatalf("registry Latest called %d times, want 0", got)
+		}
+	})
+
+	t.Run("negative major", func(t *testing.T) {
+		res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+			Name: "get_latest_version",
+			Arguments: map[string]any{
+				"manager": "npm",
+				"pkg":     "react",
+				"major":   -1,
+			},
+		})
+		if err != nil {
+			t.Fatalf("CallTool: %v", err)
+		}
+		if !res.IsError {
+			t.Fatalf("IsError=false, want true")
+		}
+		if got := extractErrorType(t, res); got != "invalid_input" {
+			t.Fatalf("error.type=%q, want invalid_input", got)
+		}
+		if got := f.LatestCalls.Load(); got != 0 {
+			t.Fatalf("registry Latest called %d times, want 0", got)
+		}
+	})
+
+	t.Run("negative minor", func(t *testing.T) {
+		res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+			Name: "get_latest_version",
+			Arguments: map[string]any{
+				"manager": "npm",
+				"pkg":     "react",
+				"major":   1,
+				"minor":   -1,
+			},
+		})
+		if err != nil {
+			t.Fatalf("CallTool: %v", err)
+		}
+		if !res.IsError {
+			t.Fatalf("IsError=false, want true")
+		}
+		if got := extractErrorType(t, res); got != "invalid_input" {
+			t.Fatalf("error.type=%q, want invalid_input", got)
+		}
+		if got := f.LatestCalls.Load(); got != 0 {
+			t.Fatalf("registry Latest called %d times, want 0", got)
+		}
+	})
 }
 
 // TestNotFoundProducesMissShape verifies that KindNotFound now routes to the
@@ -223,7 +361,7 @@ func TestNotFoundProducesMissShape(t *testing.T) {
 
 	res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
 		Name:      "validate_version",
-		Arguments: map[string]any{"manager": "npm", "package": "react", "version": "1.0.0"},
+		Arguments: map[string]any{"manager": "npm", "pkg": "react", "version": "1.0.0"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool: %v", err)
@@ -253,7 +391,7 @@ func TestPanicRecoveredAsUpstreamDown(t *testing.T) {
 
 	res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
 		Name:      "validate_version",
-		Arguments: map[string]any{"manager": "npm", "package": "react", "version": "1.0.0"},
+		Arguments: map[string]any{"manager": "npm", "pkg": "react", "version": "1.0.0"},
 	})
 	if err != nil {
 		t.Fatalf("CallTool transport err (panic should not crash process): %v", err)
