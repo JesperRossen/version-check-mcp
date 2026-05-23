@@ -11,7 +11,6 @@ import (
 	"github.com/JesperRossen/version-check-mcp/internal/filter"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
 
-	"github.com/google/jsonschema-go/jsonschema"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -43,14 +42,72 @@ type LatestInput struct {
 	Minor              *int    `json:"minor,omitempty" jsonschema:"optional integer constraining the result to that minor (requires major); e.g. major=17,minor=0 returns latest 17.0.x"`
 }
 
-// schemaFor builds the JSON schema for an input type T using jsonschema-go's
-// reflection. Panics on invalid types — callers should test once at startup.
-func schemaFor[T any]() *jsonschema.Schema {
-	s, err := jsonschema.For[T](nil)
+// validateInputSchema returns a JSON schema object for ValidateInput.
+func validateInputSchema() json.RawMessage {
+	return mustSchema(map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"manager", "pkg", "version"},
+		"properties": map[string]any{
+			"manager": map[string]any{
+				"type":        "string",
+				"description": "package manager: one of npm, pypi, gomod, gh, maven",
+				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
+			},
+			"pkg": map[string]any{
+				"type":        "string",
+				"description": "package identifier in ecosystem-native form (e.g. 'react', 'requests', 'github.com/foo/bar', 'actions/checkout', 'org.springframework:spring-core')",
+			},
+			"version": map[string]any{
+				"type":        "string",
+				"description": "exact version string (no ranges); ecosystem-native form (Go retains 'v' prefix, NPM does not)",
+			},
+			"include_prereleases": map[string]any{
+				"type":        "boolean",
+				"description": "if true, prereleases considered valid; default false",
+			},
+		},
+	})
+}
+
+// latestInputSchema returns a JSON schema object for LatestInput.
+func latestInputSchema() json.RawMessage {
+	return mustSchema(map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"manager", "pkg"},
+		"properties": map[string]any{
+			"manager": map[string]any{
+				"type":        "string",
+				"description": "package manager: one of npm, pypi, gomod, gh, maven",
+				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
+			},
+			"pkg": map[string]any{
+				"type":        "string",
+				"description": "package identifier in ecosystem-native form",
+			},
+			"include_prereleases": map[string]any{
+				"type":        "boolean",
+				"description": "if true, prereleases are considered; default false",
+			},
+			"major": map[string]any{
+				"type":        "integer",
+				"description": "optional integer constraining the result to that major version (e.g. 17 returns latest 17.x)",
+			},
+			"minor": map[string]any{
+				"type":        "integer",
+				"description": "optional integer constraining the result to that minor (requires major); e.g. major=17,minor=0 returns latest 17.0.x",
+			},
+		},
+	})
+}
+
+func mustSchema(schema map[string]any) json.RawMessage {
+	raw, err := json.Marshal(schema)
 	if err != nil {
-		panic(fmt.Sprintf("schemaFor: %v", err))
+		panic(fmt.Sprintf("marshal tool schema: %v", err))
 	}
-	return s
+	return raw
 }
 
 // isRangeLike returns true for any version string that looks like a range

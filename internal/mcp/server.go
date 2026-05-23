@@ -72,7 +72,7 @@ func NewServer(registries map[Manager]registry.Registry, c *cache.Cache, logger 
 		&sdkmcp.Tool{
 			Name:        "validate_version",
 			Description: validateDescription,
-			InputSchema: schemaFor[ValidateInput](),
+			InputSchema: validateInputSchema(),
 		},
 		s.validateRawHandler,
 	)
@@ -81,7 +81,7 @@ func NewServer(registries map[Manager]registry.Registry, c *cache.Cache, logger 
 		&sdkmcp.Tool{
 			Name:        "get_latest_version",
 			Description: latestDescription,
-			InputSchema: schemaFor[LatestInput](),
+			InputSchema: latestInputSchema(),
 		},
 		s.latestRawHandler,
 	)
