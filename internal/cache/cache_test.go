@@ -84,7 +84,10 @@ func TestSingleflightDedupes(t *testing.T) {
 }
 
 func TestExpires(t *testing.T) {
-	c := cache.NewCache(64, 50*time.Millisecond)
+	now := time.Unix(1_700_000_000, 0)
+	c := cache.NewCacheWithClock(64, 50*time.Millisecond, 50*time.Millisecond, func() time.Time {
+		return now
+	})
 	defer c.Close()
 
 	k := cache.Key{Manager: "npm", Pkg: "react", Op: "latest", IncPre: false}
@@ -97,28 +100,33 @@ func TestExpires(t *testing.T) {
 	}
 
 	var calls atomic.Int64
-	deadline := time.Now().Add(1 * time.Second)
-	for {
-		v2, err := cache.Get[string](context.Background(), c, k, func(ctx context.Context) (string, error) {
-			calls.Add(1)
-			return "w", nil
-		})
-		if err != nil {
-			t.Fatalf("Get err = %v", err)
-		}
-		if v2 == "w" {
-			if calls.Load() != 1 {
-				t.Errorf("loader was called %d times after expiry, want 1", calls.Load())
-			}
-			return
-		}
-		if v2 != "v" {
-			t.Fatalf("Get value = %q, want %q or %q", v2, "v", "w")
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("cache entry did not expire within timeout")
-		}
-		time.Sleep(5 * time.Millisecond)
+	v2, err := cache.Get[string](context.Background(), c, k, func(ctx context.Context) (string, error) {
+		calls.Add(1)
+		return "w", nil
+	})
+	if err != nil {
+		t.Fatalf("second Get err = %v", err)
+	}
+	if v2 != "v" {
+		t.Fatalf("second Get value = %q, want %q", v2, "v")
+	}
+	if calls.Load() != 0 {
+		t.Fatalf("loader called %d times before expiry, want 0", calls.Load())
+	}
+
+	now = now.Add(60 * time.Millisecond)
+	v3, err := cache.Get[string](context.Background(), c, k, func(ctx context.Context) (string, error) {
+		calls.Add(1)
+		return "w", nil
+	})
+	if err != nil {
+		t.Fatalf("third Get err = %v", err)
+	}
+	if v3 != "w" {
+		t.Fatalf("third Get value = %q, want %q", v3, "w")
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("loader was called %d times after expiry, want 1", calls.Load())
 	}
 }
 

@@ -42,7 +42,7 @@ func repoRoot(t *testing.T) string {
 		t.Fatalf("abs: %v", err)
 	}
 	for {
-		if _, err := exec.Command("test", "-f", filepath.Join(dir, "go.mod")).CombinedOutput(); err == nil {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
 			return dir
 		}
 		parent := filepath.Dir(dir)

@@ -36,6 +36,7 @@ type Cache struct {
 	sf       singleflight.Group
 	fullTTL  time.Duration
 	shortTTL time.Duration
+	now      func() time.Time
 }
 
 // NewCache constructs a Cache with the standard shortTTL derivation:
@@ -51,19 +52,29 @@ func NewCache(size int, fullTTL time.Duration) *Cache {
 	if shortTTL < time.Second {
 		shortTTL = time.Second
 	}
-	return NewCacheWithShortTTL(size, fullTTL, shortTTL)
+	return NewCacheWithClock(size, fullTTL, shortTTL, time.Now)
 }
 
 // NewCacheWithShortTTL is a test-friendly variant of NewCache that exposes
 // shortTTL directly. Production code should call NewCache.
 func NewCacheWithShortTTL(size int, fullTTL, shortTTL time.Duration) *Cache {
+	return NewCacheWithClock(size, fullTTL, shortTTL, time.Now)
+}
+
+// NewCacheWithClock is a test-friendly constructor that allows controlling
+// the current time used for entry expiration checks.
+func NewCacheWithClock(size int, fullTTL, shortTTL time.Duration, now func() time.Time) *Cache {
 	if size <= 0 {
 		size = 1024
+	}
+	if now == nil {
+		now = time.Now
 	}
 	return &Cache{
 		lru:      expirable.NewLRU[string, entry](size, nil, fullTTL),
 		fullTTL:  fullTTL,
 		shortTTL: shortTTL,
+		now:      now,
 	}
 }
 
@@ -93,7 +104,7 @@ func Get[V any](ctx context.Context, c *Cache, k Key, load Loader[V]) (V, error)
 	var zero V
 
 	// Fast path: serve from cache if entry exists and hasn't expired.
-	if e, ok := c.lru.Get(keyStr); ok && time.Now().Before(e.expiresAt) {
+	if e, ok := c.lru.Get(keyStr); ok && c.now().Before(e.expiresAt) {
 		switch e.kind {
 		case "not_found":
 			return zero, errs.NotFound("cached miss", "key", keyStr)
@@ -107,22 +118,22 @@ func Get[V any](ctx context.Context, c *Cache, k Key, load Loader[V]) (V, error)
 	}
 
 	// Slow path: singleflight ensures only one loader runs per key.
-	raw, err, _ := c.sf.Do(keyStr, func() (any, error) {
-		v, lerr := load(ctx)
-		if lerr == nil {
-			c.lru.Add(keyStr, entry{
-				value:     v,
-				kind:      "ok",
-				expiresAt: time.Now().Add(c.fullTTL),
-			})
-			return v, nil
-		}
+		raw, err, _ := c.sf.Do(keyStr, func() (any, error) {
+			v, lerr := load(ctx)
+			if lerr == nil {
+				c.lru.Add(keyStr, entry{
+					value:     v,
+					kind:      "ok",
+					expiresAt: c.now().Add(c.fullTTL),
+				})
+				return v, nil
+			}
 
 		var e *errs.E
 		if errors.As(lerr, &e) && e.Kind == errs.KindNotFound {
 			c.lru.Add(keyStr, entry{
 				kind:      "not_found",
-				expiresAt: time.Now().Add(c.shortTTL),
+				expiresAt: c.now().Add(c.shortTTL),
 			})
 		}
 		// upstream_down / rate_limited / non-errs.E errors are not cached.
