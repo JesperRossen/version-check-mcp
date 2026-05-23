@@ -120,14 +120,13 @@ func isRangeLike(v string) bool {
 	if v == "" || v == "*" {
 		return true
 	}
-	if strings.ContainsAny(v, "^~*<>=, ") {
+	if strings.ContainsAny(v, "^~<>=, ") || strings.Contains(v, "||") {
 		return true
 	}
-	if strings.Contains(v, "||") {
-		return true
-	}
-	if strings.ContainsAny(v, "xX") {
-		return true
+	for _, part := range strings.Split(v, ".") {
+		if part == "x" || part == "X" || part == "*" {
+			return true
+		}
 	}
 	return false
 }
