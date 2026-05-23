@@ -127,7 +127,7 @@ Project-scoped config at `.mcp.json` in your project root:
 }
 ```
 
-Global alternative: `~/.claude/claude.json` (same schema).
+Global alternative: `~/.claude.json` (same schema).
 
 > **Optional:** Increase GitHub rate limit - add an `env` field to pass `GITHUB_TOKEN`:
 >
