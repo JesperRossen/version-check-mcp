@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*.*.*"]
   pull_request:
     branches: [main]
 
@@ -10,6 +11,8 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -18,6 +21,7 @@ jobs:
         with:
           go-version: "1.26.x"
           cache: true
+          cache-dependency-path: go.sum
 
       - name: go vet
         run: go vet ./...
@@ -28,50 +32,74 @@ jobs:
       - name: Integration tests (fixture-replay)
         run: go test -tags testfixtures ./test/integration/... -count=1 -timeout 5m
 
-      # Cold-start benchmark — advisory only (TEST-04). The step never fails
-      # the build (continue-on-error: true) regardless of the measured ms.
-      - name: Cold-start benchmark (advisory)
-        continue-on-error: true
+  release:
+    name: GoReleaser + MCPB
+    runs-on: ubuntu-latest
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          distribution: goreleaser
+          version: "v2.15.4"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Setup Node (for mcpb)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build MCPB bundle
+        env:
+          GITHUB_TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          go build -tags testfixtures -o ./version-check-mcp ./cmd/version-check-mcp
 
-          # The binary speaks newline-delimited JSON-RPC on stdio.
-          REQ='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"cold-start-bench","version":"0.0"}}}'
+          # Install the official MCPB CLI (CI-only, not a Go dep)
+          npm install -g @anthropic-ai/mcpb
 
-          OUT=$(mktemp)
-          export NPM_FIXTURE_DIR="$PWD/testdata/fixtures/npm"
+          # Create bundle staging directory and copy arch-specific binaries.
+          # Uses GoReleaser's artifacts.json to locate exact paths (avoids
+          # BSD vs GNU find glob differences with -path across separators).
+          mkdir -p mcpb-staging/server
+          python3 .github/release/copy-binaries.py
 
-          # Hold stdin open with a trailing sleep so the binary doesn't exit
-          # on EOF before answering. The subshell streams the request line +
-          # newline, then idles for up to 5 s while we wait for the response.
-          START_NS=$(date +%s%N)
-          ( printf '%s\n' "$REQ"; sleep 5 ) | ./version-check-mcp > "$OUT" 2>/dev/null &
-          PID=$!
+          # Copy static arch-selector wrapper scripts (sh; selects amd64 or arm64 at runtime).
+          cp .github/release/server/version-check-mcp-darwin mcpb-staging/server/version-check-mcp-darwin
+          cp .github/release/server/version-check-mcp-linux  mcpb-staging/server/version-check-mcp-linux
 
-          # Spin-wait up to 5 s for the first stdout byte. ms resolution.
-          ELAPSED_MS=-1
-          for _ in $(seq 1 5000); do
-            if [ -s "$OUT" ]; then
-              END_NS=$(date +%s%N)
-              ELAPSED_MS=$(( (END_NS - START_NS) / 1000000 ))
-              break
-            fi
-            sleep 0.001
-          done
-          kill "$PID" 2>/dev/null || true
-          wait "$PID" 2>/dev/null || true
+          chmod +x \
+            mcpb-staging/server/version-check-mcp-darwin \
+            mcpb-staging/server/version-check-mcp-linux \
+            mcpb-staging/server/version-check-mcp-darwin-amd64 \
+            mcpb-staging/server/version-check-mcp-darwin-arm64 \
+            mcpb-staging/server/version-check-mcp-linux-amd64 \
+            mcpb-staging/server/version-check-mcp-linux-arm64
 
-          {
-            echo "### Cold-Start Benchmark"
-            echo ""
-            if [ "$ELAPSED_MS" -ge 0 ]; then
-              echo "Wall-clock from spawn to first stdout byte: **${ELAPSED_MS} ms**"
-            else
-              echo "Failed to capture first stdout byte within 5 s (advisory; never fails the build)"
-            fi
-            echo ""
-            echo "_Target: <20 ms cold start (advisory; never fails the build per TEST-04)_"
-          } >> "$GITHUB_STEP_SUMMARY"
+          # Generate manifest.json from template (substitute __VERSION__ placeholder).
+          # ${__dirname} in the template stays literal - it is substituted at runtime
+          # by the MCPB host with the extension install directory.
+          VERSION="${GITHUB_TAG#v}"
+          sed "s/__VERSION__/${VERSION}/" .github/release/manifest.json.tmpl > mcpb-staging/manifest.json
 
-          echo "cold-start-ms=$ELAPSED_MS"
+          # Pack and attach to the GitHub Release created by GoReleaser.
+          mcpb pack mcpb-staging version-check-mcp.mcpb
+          gh release upload "${GITHUB_TAG}" version-check-mcp.mcpb --clobber
