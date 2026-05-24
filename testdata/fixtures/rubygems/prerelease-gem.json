@@ -1,0 +1,22 @@
+[
+  {
+    "number": "2.0.0-beta.1",
+    "prerelease": true,
+    "platform": "ruby"
+  },
+  {
+    "number": "1.9.0",
+    "prerelease": false,
+    "platform": "ruby"
+  },
+  {
+    "number": "1.9.0",
+    "prerelease": false,
+    "platform": "java"
+  },
+  {
+    "number": "1.8.5",
+    "prerelease": false,
+    "platform": "ruby"
+  }
+]
