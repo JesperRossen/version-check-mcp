@@ -1,0 +1,28 @@
+{
+  "crate": {
+    "id": "serde",
+    "max_version": "1.0.228"
+  },
+  "versions": [
+    {
+      "num": "2.0.0-beta.1",
+      "yanked": false
+    },
+    {
+      "num": "1.0.228",
+      "yanked": false
+    },
+    {
+      "num": "1.0.227",
+      "yanked": false
+    },
+    {
+      "num": "1.0.0",
+      "yanked": false
+    },
+    {
+      "num": "0.9.0",
+      "yanked": true
+    }
+  ]
+}
