@@ -96,7 +96,10 @@ func (a *Adapter) Validate(ctx context.Context, pkg, version string, incPre bool
 		}
 	}
 
-	return registry.ValidateResult{Exists: false, Source: ""}, nil
+	return registry.ValidateResult{}, errs.NotFound(
+		"rubygems version not in versions list",
+		"pkg", pkg, "version", version,
+	)
 }
 
 func (a *Adapter) Latest(ctx context.Context, pkg string, incPre bool, major, minor *int) (registry.LatestResult, error) {

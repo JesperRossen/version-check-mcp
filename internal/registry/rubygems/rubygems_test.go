@@ -80,12 +80,16 @@ func TestValidate_NotFoundPackage(t *testing.T) {
 
 func TestValidate_NotFoundVersion(t *testing.T) {
 	a := newAdapter(t, nil)
-	res, err := a.Validate(context.Background(), "rails", "99.0.0", false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	_, err := a.Validate(context.Background(), "rails", "99.0.0", false)
+	if err == nil {
+		t.Fatal("expected error")
 	}
-	if res.Exists {
-		t.Fatalf("expected Exists=false, got true with source=%q", res.Source)
+	var e *errs.E
+	if !errors.As(err, &e) {
+		t.Fatalf("expected *errs.E, got %T: %v", err, err)
+	}
+	if e.Kind != errs.KindNotFound {
+		t.Fatalf("Kind=%q, want %q", e.Kind, errs.KindNotFound)
 	}
 }
 
