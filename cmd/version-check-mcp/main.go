@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -102,18 +101,15 @@ func main() {
 }
 
 // isCleanShutdown reports whether err represents a normal shutdown of the
-// stdio transport (ctx cancelled, stdin EOF, or jsonrpc2's "server is
-// closing" sentinel). These all signal "the client went away" rather than
-// a server fault, so we exit 0 to keep the integration test's clean-exit
-// contract.
+// stdio transport (ctx cancelled, stdin EOF, or the SDK's connection-closed
+// sentinel). These all signal "the client went away" rather than a server
+// fault, so we exit 0 to keep the integration test's clean-exit contract.
 func isCleanShutdown(err error) bool {
 	if err == nil {
 		return true
 	}
-	if errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
+	if errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) || errors.Is(err, sdkmcp.ErrConnectionClosed) {
 		return true
 	}
-	// jsonrpc2's ErrServerClosing isn't exported from the public mcp package,
-	// so match by message — the SDK wraps it via %w + ": EOF".
-	return strings.Contains(err.Error(), "server is closing")
+	return false
 }
