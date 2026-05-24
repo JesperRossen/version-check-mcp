@@ -21,11 +21,13 @@ import (
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
 	appmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/crate"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/gh"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/gomod"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/maven"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/npm"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/pypi"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/rubygems"
 	"github.com/JesperRossen/version-check-mcp/internal/version"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -77,13 +79,15 @@ func main() {
 
 	sharedClient := newSharedClient()
 
-	// Phase 3: all five registries use real adapters.
+	// Phase 11: all seven registries use real adapters.
 	registries := map[appmcp.Manager]registry.Registry{
-		appmcp.ManagerNPM:   npm.New(sharedClient, c),
-		appmcp.ManagerPyPI:  pypi.New(sharedClient, c),
-		appmcp.ManagerGomod: gomod.New(sharedClient, c),
-		appmcp.ManagerGH:    gh.New(sharedClient, c),
-		appmcp.ManagerMaven: maven.New(sharedClient, c),
+		appmcp.ManagerNPM:      npm.New(sharedClient, c),
+		appmcp.ManagerPyPI:     pypi.New(sharedClient, c),
+		appmcp.ManagerGomod:    gomod.New(sharedClient, c),
+		appmcp.ManagerGH:       gh.New(sharedClient, c),
+		appmcp.ManagerMaven:    maven.New(sharedClient, c),
+		appmcp.ManagerCrate:    crate.New(sharedClient, c),
+		appmcp.ManagerRubygems: rubygems.New(sharedClient, c),
 	}
 
 	server := appmcp.NewServer(registries, c, logger)

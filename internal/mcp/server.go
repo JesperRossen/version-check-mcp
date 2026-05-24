@@ -17,11 +17,11 @@ const (
 		"When not to use: finding newest versions, use get_latest_version for that. " +
 		"Required inputs: manager, pkg, version. Optional: include_prereleases (default false). " +
 		"Version must be exact, not a range. " +
-		"Manager enum values: npm, pypi, gomod, gh, maven. " +
+		"Manager enum values: npm, pypi, gomod, gh, maven, crate, rubygems. " +
 		"Response on hit: {exists:true, source:string, requested_version:string}. " +
 		"Response on miss: {exists:false, requested_version:string, latest_stable:string, alternatives:[{version:string, reason:latest_stable|nearest_semver|latest_in_major}]}. " +
 		"Error envelope: {error:{type:invalid_input|not_found|rate_limited|upstream_down, message:string, details:object}, requested_version?:string}. " +
-		"Version formatting: Go/GitHub tags usually keep 'v' prefix, npm/PyPI/Maven usually do not. " +
+		"Version formatting: Go/GitHub tags usually keep 'v' prefix, npm/PyPI/Maven/Crates.io/RubyGems usually do not. " +
 		"Result is authoritative live registry data."
 
 	latestDescription = "Use this tool to look up the newest available version for a package before proposing an upgrade. " +
@@ -29,7 +29,7 @@ const (
 		"When not to use: checking whether an already chosen version exists, use validate_version. " +
 		"Required inputs: manager, pkg. Optional: include_prereleases (default false), major, minor. " +
 		"Filter semantics: major=17 means latest 17.x; minor requires major and means latest 17.0.x style within that branch. " +
-		"Manager enum values: npm, pypi, gomod, gh, maven. " +
+		"Manager enum values: npm, pypi, gomod, gh, maven, crate, rubygems. " +
 		"Success response: {version:string, source:string}. " +
 		"If no version matches filters, returns error.type=not_found. " +
 		"Error envelope: {error:{type:invalid_input|not_found|rate_limited|upstream_down, message:string, details:object}}. " +
