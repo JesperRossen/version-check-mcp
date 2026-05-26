@@ -15,29 +15,31 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Manager is the locked package-manager enum (D-01). The five string values
+// Manager is the locked package-manager enum (D-01). The seven string values
 // are wire-visible (they appear in tool schemas and JSON-RPC payloads) and
 // must not change.
 type Manager string
 
 const (
-	ManagerNPM   Manager = "npm"
-	ManagerPyPI  Manager = "pypi"
-	ManagerGomod Manager = "gomod"
-	ManagerGH    Manager = "gh"
-	ManagerMaven Manager = "maven"
+	ManagerNPM      Manager = "npm"
+	ManagerPyPI     Manager = "pypi"
+	ManagerGomod    Manager = "gomod"
+	ManagerGH       Manager = "gh"
+	ManagerMaven    Manager = "maven"
+	ManagerCrate    Manager = "crate"
+	ManagerRubygems Manager = "rubygems"
 )
 
 type ValidateInput struct {
-	Manager            Manager `json:"manager" jsonschema:"package manager: one of npm, pypi, gomod, gh, maven"`
-	Pkg                string  `json:"pkg" jsonschema:"package identifier in ecosystem-native form (e.g. 'react', 'requests', 'github.com/foo/bar', 'actions/checkout', 'org.springframework:spring-core')"`
+	Manager            Manager `json:"manager" jsonschema:"package manager: one of npm, pypi, gomod, gh, maven, crate, rubygems"`
+	Pkg                string  `json:"pkg" jsonschema:"package identifier in ecosystem-native form (e.g. 'react', 'requests', 'github.com/foo/bar', 'actions/checkout', 'org.springframework:spring-core', 'serde', 'rails')"`
 	Version            string  `json:"version" jsonschema:"exact version string (no ranges); ecosystem-native form (Go retains 'v' prefix, NPM does not)"`
 	IncludePrereleases bool    `json:"include_prereleases,omitempty" jsonschema:"if true, prereleases considered valid; default false"`
 }
 
 type LatestInput struct {
-	Manager            Manager `json:"manager" jsonschema:"package manager: one of npm, pypi, gomod, gh, maven"`
-	Pkg                string  `json:"pkg" jsonschema:"package identifier in ecosystem-native form"`
+	Manager            Manager `json:"manager" jsonschema:"package manager: one of npm, pypi, gomod, gh, maven, crate, rubygems"`
+	Pkg                string  `json:"pkg" jsonschema:"package identifier in ecosystem-native form (e.g. 'react', 'requests', 'github.com/foo/bar', 'actions/checkout', 'org.springframework:spring-core', 'serde', 'rails')"`
 	IncludePrereleases bool    `json:"include_prereleases,omitempty" jsonschema:"if true, prereleases are considered; default false"`
 	Major              *int    `json:"major,omitempty" jsonschema:"optional integer constraining the result to that major version (e.g. 17 returns latest 17.x)"`
 	Minor              *int    `json:"minor,omitempty" jsonschema:"optional integer constraining the result to that minor (requires major); e.g. major=17,minor=0 returns latest 17.0.x"`
@@ -53,12 +55,12 @@ func validateInputSchema() json.RawMessage {
 		"properties": map[string]any{
 			"manager": map[string]any{
 				"type":        "string",
-				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central).",
-				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
+				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central), crate (Crates.io), rubygems (RubyGems).",
+				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven", "crate", "rubygems"},
 			},
 			"pkg": map[string]any{
 				"type":        "string",
-				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core.",
+				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core, serde, rails.",
 			},
 			"version": map[string]any{
 				"type":        "string",
@@ -82,12 +84,12 @@ func latestInputSchema() json.RawMessage {
 		"properties": map[string]any{
 			"manager": map[string]any{
 				"type":        "string",
-				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central).",
-				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven"},
+				"description": "Registry family for lookup. Allowed values: npm (NPM), pypi (Python), gomod (Go modules), gh (GitHub tags/releases), maven (Maven Central), crate (Crates.io), rubygems (RubyGems).",
+				"enum":        []string{"npm", "pypi", "gomod", "gh", "maven", "crate", "rubygems"},
 			},
 			"pkg": map[string]any{
 				"type":        "string",
-				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core.",
+				"description": "Package identifier in ecosystem-native syntax. Examples: react, requests, github.com/foo/bar, actions/checkout, org.springframework:spring-core, serde, rails.",
 			},
 			"include_prereleases": map[string]any{
 				"type":        "boolean",
@@ -115,7 +117,7 @@ func mustSchema(schema map[string]any) json.RawMessage {
 
 // isRangeLike returns true for any version string that looks like a range
 // or wildcard rather than an exact pinned version (VAL-05 / D-03). Exact
-// versions across npm/pypi/gomod/gh/maven use only [0-9A-Za-z._+-] plus an
+// versions across npm/pypi/gomod/gh/maven/crate/rubygems use only [0-9A-Za-z._+-] plus an
 // optional leading 'v' for Go. Anything else is suspicious.
 func isRangeLike(v string) bool {
 	if v == "" || v == "*" {

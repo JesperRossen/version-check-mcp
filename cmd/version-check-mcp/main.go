@@ -14,18 +14,19 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/JesperRossen/version-check-mcp/internal/cache"
 	appmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/crate"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/gh"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/gomod"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/maven"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/npm"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/pypi"
+	"github.com/JesperRossen/version-check-mcp/internal/registry/rubygems"
 	"github.com/JesperRossen/version-check-mcp/internal/version"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -77,13 +78,15 @@ func main() {
 
 	sharedClient := newSharedClient()
 
-	// Phase 3: all five registries use real adapters.
+	// Phase 11: all seven registries use real adapters.
 	registries := map[appmcp.Manager]registry.Registry{
-		appmcp.ManagerNPM:   npm.New(sharedClient, c),
-		appmcp.ManagerPyPI:  pypi.New(sharedClient, c),
-		appmcp.ManagerGomod: gomod.New(sharedClient, c),
-		appmcp.ManagerGH:    gh.New(sharedClient, c),
-		appmcp.ManagerMaven: maven.New(sharedClient, c),
+		appmcp.ManagerNPM:      npm.New(sharedClient, c),
+		appmcp.ManagerPyPI:     pypi.New(sharedClient, c),
+		appmcp.ManagerGomod:    gomod.New(sharedClient, c),
+		appmcp.ManagerGH:       gh.New(sharedClient, c),
+		appmcp.ManagerMaven:    maven.New(sharedClient, c),
+		appmcp.ManagerCrate:    crate.New(sharedClient, c),
+		appmcp.ManagerRubygems: rubygems.New(sharedClient, c),
 	}
 
 	server := appmcp.NewServer(registries, c, logger)
@@ -98,18 +101,15 @@ func main() {
 }
 
 // isCleanShutdown reports whether err represents a normal shutdown of the
-// stdio transport (ctx cancelled, stdin EOF, or jsonrpc2's "server is
-// closing" sentinel). These all signal "the client went away" rather than
-// a server fault, so we exit 0 to keep the integration test's clean-exit
-// contract.
+// stdio transport (ctx cancelled, stdin EOF, or the SDK's connection-closed
+// sentinel). These all signal "the client went away" rather than a server
+// fault, so we exit 0 to keep the integration test's clean-exit contract.
 func isCleanShutdown(err error) bool {
 	if err == nil {
 		return true
 	}
-	if errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
+	if errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) || errors.Is(err, sdkmcp.ErrConnectionClosed) {
 		return true
 	}
-	// jsonrpc2's ErrServerClosing isn't exported from the public mcp package,
-	// so match by message — the SDK wraps it via %w + ": EOF".
-	return strings.Contains(err.Error(), "server is closing")
+	return false
 }

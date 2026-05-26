@@ -42,6 +42,7 @@ type Registry interface {
 	// if the cache is warm. Per D-IF-02.
 	Versions(ctx context.Context, pkg string, incPre bool) ([]string, error)
 	// Name returns the manager identifier this registry serves: "npm",
-	// "pypi", "gomod", "gh", "maven", or "fake" (test double only).
+	// "pypi", "gomod", "gh", "maven", "crate", "rubygems", or "fake"
+	// (test double only).
 	Name() string
 }

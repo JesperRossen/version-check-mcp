@@ -1,5 +1,5 @@
 // Package mcp_test — cross-registry response shape audit (Phase 4, Plan 03).
-// Verifies that hit and miss paths produce the correct key sets for all 5
+// Verifies that hit and miss paths produce the correct key sets for all 7
 // supported registries, and that miss responses satisfy the ecosystem-native
 // version format and latest_stable-first invariants.
 package mcp_test
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	internalmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/errs"
+	internalmcp "github.com/JesperRossen/version-check-mcp/internal/mcp"
 	"github.com/JesperRossen/version-check-mcp/internal/registry"
 	"github.com/JesperRossen/version-check-mcp/internal/registry/fake"
 
@@ -91,6 +91,18 @@ var shapeCases = []shapeCase{
 		versions: []string{"1.0.0", "1.1.0", "2.0.0", "2.1.0", "3.0.0"},
 		latest:   "3.0.0",
 	},
+	{
+		name: "crate", manager: "crate", pkg: "serde",
+		version: "1.0.228", missVer: "99.0.0", vPrefixed: false,
+		versions: []string{"1.0.0", "1.0.227", "1.0.228", "2.0.0-beta.1"},
+		latest:   "1.0.228",
+	},
+	{
+		name: "rubygems", manager: "rubygems", pkg: "rails",
+		version: "8.1.3", missVer: "99.0.0", vPrefixed: false,
+		versions: []string{"7.2.3", "8.0.0", "8.1.3", "8.2.0-beta.1"},
+		latest:   "8.1.3",
+	},
 }
 
 // buildRegistries constructs one fake per shape case and returns the map
@@ -131,14 +143,14 @@ func TestResponseShapeAudit(t *testing.T) {
 				session, done := connectInMemory(t, registries)
 				defer done()
 
-			res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
-				Name: "validate_version",
-				Arguments: map[string]any{
-					"manager": tc.manager,
-					"pkg":     tc.pkg,
-					"version": tc.version,
-				},
-			})
+				res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+					Name: "validate_version",
+					Arguments: map[string]any{
+						"manager": tc.manager,
+						"pkg":     tc.pkg,
+						"version": tc.version,
+					},
+				})
 				if err != nil {
 					t.Fatalf("hit CallTool: %v", err)
 				}
@@ -167,14 +179,14 @@ func TestResponseShapeAudit(t *testing.T) {
 				session, done := connectInMemory(t, registries)
 				defer done()
 
-			res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
-				Name: "validate_version",
-				Arguments: map[string]any{
-					"manager": tc.manager,
-					"pkg":     tc.pkg,
-					"version": tc.missVer,
-				},
-			})
+				res, err := session.CallTool(context.Background(), &sdkmcp.CallToolParams{
+					Name: "validate_version",
+					Arguments: map[string]any{
+						"manager": tc.manager,
+						"pkg":     tc.pkg,
+						"version": tc.missVer,
+					},
+				})
 				if err != nil {
 					t.Fatalf("miss CallTool: %v", err)
 				}
@@ -219,8 +231,8 @@ func TestResponseShapeAudit(t *testing.T) {
 				}
 
 				validReasons := map[string]bool{
-					"latest_stable":  true,
-					"nearest_semver": true,
+					"latest_stable":   true,
+					"nearest_semver":  true,
 					"latest_in_major": true,
 				}
 				for i, alt := range alts {
